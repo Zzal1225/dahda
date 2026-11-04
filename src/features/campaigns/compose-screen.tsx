@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { useForm } from "react-hook-form";
+import { PhonePreview } from "./phone-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
@@ -542,7 +543,7 @@ export function ComposeScreen({
             </p>
             {needsApproval ? (
               <p className="text-caption text-text-muted">
-                잔액은 승인 후 실제로 발송될 때 차감돼요.
+                잔액은 본사가 승인할 때 차감돼요.
               </p>
             ) : shortage > 0 ? (
               <p className="text-body-sm font-bold text-danger">
@@ -569,27 +570,13 @@ export function ComposeScreen({
       </form>
 
       <aside aria-label="미리보기" className="xl:sticky xl:top-6 xl:self-start">
-        <div className="mx-auto h-[600px] w-[300px] rounded-[44px] bg-text p-2.5">
-          <div className="flex h-full flex-col gap-3 overflow-y-auto rounded-[34px] bg-surface p-4">
-            <div className="flex flex-col items-center gap-1 border-b border-border pb-3">
-              <span className="flex size-10 items-center justify-center rounded-full bg-surface-2 text-caption">
-                발신
-              </span>
-              <span className="text-caption">
-                {formatPhone(senderForParts)}
-              </span>
-            </div>
-            <span className="text-center text-caption text-text-muted">
-              {message.kind.toUpperCase()} · {whenText}
-            </span>
-            <p
-              data-testid="preview-body"
-              className="max-w-[200px] rounded-[18px_18px_18px_4px] bg-surface-2 px-3.5 py-2.5 text-body-sm break-words whitespace-pre-wrap"
-            >
-              {message.fullBody || "보낼 내용을 입력해 주세요"}
-            </p>
-          </div>
-        </div>
+        <PhonePreview
+          className="h-[600px] w-[300px]"
+          sender={senderForParts}
+          caption={`${message.kind.toUpperCase()} · ${whenText}`}
+          body={message.fullBody || "보낼 내용을 입력해 주세요"}
+          testId="preview-body"
+        />
         <p className="mt-2 text-center text-caption text-text-muted">
           미리보기는 기기마다 다르게 보일 수 있어요
         </p>

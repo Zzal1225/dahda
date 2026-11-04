@@ -1,12 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { cancelCampaign } from "@/features/campaigns/approval-actions";
 import { CAMPAIGN_LIST_LIMIT } from "@/features/campaigns/campaign-query";
 import { CampaignTable } from "@/features/campaigns/campaign-table";
 import {
   campaignTitle,
+  canCancelCampaign,
   messageCounts,
   type CampaignRow,
 } from "@/features/campaigns/campaign-view";
@@ -38,14 +41,18 @@ function TableSkeleton({ rows }: { rows: number }) {
 export function HistoryScreen({
   scope,
   role,
+  accountBranchId,
   branches,
 }: {
   /** 사용자·역할·지점. 캐시 키의 앞부분이다. */
   scope: string;
   role: MemberRole;
+  /** 내 잔액 계정. null이면 본사 계정이다. 취소 권한 판단에 쓴다. */
+  accountBranchId: string | null;
   branches: readonly BranchOption[];
 }) {
   const state = useTableState();
+  const queryClient = useQueryClient();
   const { filters, campaign: selectedId } = state;
   const showBranch = role === "hq";
 
@@ -178,7 +185,39 @@ export function HistoryScreen({
                 결과 확정 · 더 이상 바뀌지 않아요
               </span>
             )}
+            {canCancelCampaign(selected, accountBranchId, now) && (
+              <ConfirmDialog
+                title="예약을 취소할까요?"
+                description="취소하면 차감한 금액이 돌아오고 문자는 나가지 않아요. 되돌릴 수 없어요."
+                confirmLabel="예약 취소"
+                onConfirm={async () => {
+                  const result = await cancelCampaign(selected.id);
+                  if (!result) {
+                    await queryClient.invalidateQueries({
+                      queryKey: ["campaigns"],
+                    });
+                    await queryClient.invalidateQueries({
+                      queryKey: ["messages"],
+                    });
+                  }
+                  return result;
+                }}
+                trigger={(open) => (
+                  <Button variant="secondary" onClick={open}>
+                    예약 취소
+                  </Button>
+                )}
+              />
+            )}
           </div>
+          {selected.rejectedReason && (
+            <p
+              role="note"
+              className="mx-5 mb-4 rounded-md bg-surface-2 px-4 py-3 text-body-sm"
+            >
+              <b>반려 사유</b> {selected.rejectedReason}
+            </p>
+          )}
           {/* key로 발송 건마다 새로 만들어 스크롤·요청 상태가 이전 건에서 넘어오지 않게 한다. */}
           <RecipientTable
             key={selected.id}

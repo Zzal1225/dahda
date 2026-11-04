@@ -363,7 +363,13 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "create_trial_org":
+            "approve_campaign":
+{ Args: { "p_campaign_id": string,"p_org_id": string,"p_reviewer": string }; Returns: undefined
+                           },
+"cancel_campaign":
+{ Args: { "p_branch_id": string,"p_campaign_id": string,"p_org_id": string }; Returns: undefined
+                           },
+"create_trial_org":
 { Args: { "p_user_id": string }; Returns: string
                            },
 "create_trial_org_base":
@@ -374,6 +380,9 @@ isOneToOne: false
                            },
 "delete_expired_trials":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"reject_campaign":
+{ Args: { "p_campaign_id": string,"p_org_id": string,"p_reason": string,"p_reviewer": string }; Returns: undefined
                            },
 "reserve_balance":
 { Args: { "p_amount": number,"p_branch_id": string,"p_campaign_id": string,"p_idempotency_key": string,"p_org_id": string }; Returns: number

@@ -150,3 +150,16 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+/*
+ * 모바일은 승인함만 지원한다. 화면이 data-mobile-ok 표시를 두면 안내 대신 앱 틀을 보여 준다.
+ * 경로를 코드로 비교하지 않는 이유: 레이아웃이 경로를 읽으면 요청 값에 묶여 정적 셸로 내보낼 수 없다.
+ */
+@media (width < 48rem) {
+  body:has([data-mobile-ok]) .mobile-notice {
+    display: none;
+  }
+  body:has([data-mobile-ok]) .app-shell {
+    display: flex;
+  }
+}
