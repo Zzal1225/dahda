@@ -72,7 +72,7 @@ src/
     auth/              requireRole.ts(사용자 작성), RLS 보조
   components/ui/       shadcn/ui 복사본 + 토큰
 supabase/
-  migrations/          테이블·RLS·함수(잔액 선점)·pg_cron
+  migrations/          테이블·RLS·함수(잔액 선점)·pg_cron. 상태·돈 테이블 쓰기는 service_role만 (사용자는 읽기만)
   functions/           Edge Function (send-worker)
   seed/                체험 샘플, 10만 행 시드 스크립트
 docs/                  기획서.md, performance.md, decisions/, troubleshooting/, assets/
