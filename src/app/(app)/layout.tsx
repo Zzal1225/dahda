@@ -19,8 +19,8 @@ function NavFallback() {
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <>
-      {/* 모바일은 승인함만 대응한다. 승인함을 만드는 step3에서 그 경로를 이 안내의 예외로 둔다. */}
-      <div className="flex min-h-dvh items-center justify-center p-4 text-center md:hidden">
+      {/* 모바일은 승인함만 대응한다. 표시가 있는 화면에서 안내를 숨기는 규칙은 globals.css에 있다. */}
+      <div className="mobile-notice flex min-h-dvh items-center justify-center p-4 text-center md:hidden">
         <div className="flex flex-col gap-2">
           <p className="text-title">PC에서 열어 주세요</p>
           <p className="text-body-sm text-text-muted">
@@ -29,12 +29,12 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         </div>
       </div>
 
-      <div className="hidden min-h-dvh flex-col md:flex">
+      <div className="app-shell hidden min-h-dvh flex-col md:flex">
         <Suspense fallback={null}>
           <TrialBanner />
         </Suspense>
-        <div className="grid flex-1 grid-cols-[var(--sidebar-w-collapsed)_minmax(0,1fr)] xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]">
-          <aside className="flex flex-col border-r border-border bg-surface">
+        <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:grid-cols-[var(--sidebar-w-collapsed)_minmax(0,1fr)] xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]">
+          <aside className="hidden flex-col border-r border-border bg-surface md:flex">
             <div className="flex h-(--topbar-h) items-center justify-center border-b border-border text-caption font-bold text-primary xl:justify-start xl:px-6 xl:text-title">
               dahda
             </div>
@@ -43,12 +43,13 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             </Suspense>
           </aside>
           <div className="flex min-w-0 flex-col">
-            <header className="flex h-(--topbar-h) items-center gap-4 border-b border-border bg-surface px-8 whitespace-nowrap">
+            <header className="flex h-(--topbar-h) items-center gap-2 border-b border-border bg-surface px-4 whitespace-nowrap md:gap-4 md:px-8">
+              <span className="text-title text-primary md:hidden">dahda</span>
               <Suspense fallback={null}>
                 <TopBarSection />
               </Suspense>
             </header>
-            <main className="flex w-full max-w-(--content-max) flex-col gap-5 p-8">
+            <main className="flex w-full max-w-(--content-max) flex-col gap-5 p-4 md:p-8">
               <QueryProvider>{children}</QueryProvider>
             </main>
           </div>

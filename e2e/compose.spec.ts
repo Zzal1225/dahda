@@ -131,7 +131,7 @@ test.describe("문자 작성", () => {
     await page.getByRole("switch", { name: "광고 문자예요" }).check();
     await scheduleTomorrowMorning(page);
     await expect(
-      page.getByText("잔액은 승인 후 실제로 발송될 때 차감돼요."),
+      page.getByText("잔액은 본사가 승인할 때 차감돼요."),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "승인 요청" }).click();

@@ -28,7 +28,14 @@ const ICONS: Record<NavIcon, LucideIcon> = {
 };
 
 // 역할 판단은 서버가 끝내고 항목만 넘긴다. 현재 경로는 브라우저만 알아서 이 부분만 클라이언트 컴포넌트다.
-export function SidebarNav({ items }: { items: readonly NavItem[] }) {
+export function SidebarNav({
+  items,
+  badges = {},
+}: {
+  items: readonly NavItem[];
+  /** 메뉴 주소별 숫자. 0이면 표시하지 않는다. */
+  badges?: Readonly<Record<string, number>>;
+}) {
   const pathname = usePathname();
 
   return (
@@ -55,6 +62,11 @@ export function SidebarNav({ items }: { items: readonly NavItem[] }) {
               strokeWidth={1.75}
             />
             <span className="hidden text-body-sm xl:inline">{item.label}</span>
+            {(badges[item.href] ?? 0) > 0 && (
+              <span className="rounded-full border border-border bg-surface px-1.5 text-caption font-bold text-status-pending xl:ml-auto">
+                {badges[item.href]}
+              </span>
+            )}
             <span className="text-[10px] leading-3 xl:hidden">
               {item.shortLabel}
             </span>

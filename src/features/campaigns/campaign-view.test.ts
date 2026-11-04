@@ -3,6 +3,7 @@ import {
   campaignCost,
   campaignStatusView,
   campaignTitle,
+  canCancelCampaign,
   messageCounts,
   type CampaignRow,
 } from "./campaign-view";
@@ -23,6 +24,9 @@ const base: CampaignRow = {
   deliveredCount: 70,
   failedCount: 5,
   displayAt: "2026-11-04T00:00:00Z",
+  scheduledAt: null,
+  reviewedAt: null,
+  rejectedReason: null,
 };
 
 describe("campaignTitle", () => {
@@ -120,5 +124,37 @@ describe("campaignStatusView", () => {
     ["canceled", "취소"],
   ])("%s → %s", (status, label) => {
     expect(campaignStatusView(status).label).toBe(label);
+  });
+});
+
+describe("canCancelCampaign", () => {
+  const NOW = new Date("2026-11-04T00:00:00Z");
+  const scheduled: CampaignRow = {
+    ...base,
+    status: "scheduled",
+    scheduledAt: "2026-11-05T00:00:00Z",
+  };
+
+  it("계정 주인의 시각 전 예약을 취소할 수 있다", () => {
+    expect(canCancelCampaign(scheduled, "b1", NOW)).toBe(true);
+  });
+
+  it.each<[string, Partial<CampaignRow>, string | null]>([
+    ["승인된 건", { reviewedAt: "2026-11-04T00:00:00Z" }, "b1"],
+    ["지금 보내기", { scheduledAt: null }, "b1"],
+    ["시각이 지난 건", { scheduledAt: "2026-11-03T00:00:00Z" }, "b1"],
+    ["발송 중", { status: "sending" }, "b1"],
+    ["옆 지점", {}, "b2"],
+    ["본사가 지점 건을", {}, null],
+  ])("%s는 취소할 수 없다", (_, patch, account) => {
+    expect(canCancelCampaign({ ...scheduled, ...patch }, account, NOW)).toBe(
+      false,
+    );
+  });
+
+  it("본사는 본사 발송 건을 취소할 수 있다", () => {
+    expect(canCancelCampaign({ ...scheduled, branchId: null }, null, NOW)).toBe(
+      true,
+    );
   });
 });

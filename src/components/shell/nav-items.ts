@@ -52,7 +52,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     shortLabel: "승인",
     icon: "inbox",
     roles: ["hq"],
-    ready: false,
+    ready: true,
   },
   {
     href: "/history",

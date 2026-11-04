@@ -28,6 +28,7 @@ async function History() {
       <HistoryScreen
         scope={`${member.userId}:${member.branchId ?? member.role}`}
         role={member.role}
+        accountBranchId={member.branchId}
         branches={branches}
       />
     </NuqsAdapter>

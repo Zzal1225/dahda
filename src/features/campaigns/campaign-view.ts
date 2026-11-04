@@ -17,6 +17,9 @@ export type CampaignRow = {
   failedCount: number;
   /** 보낸 시각. 아직 보내기 전이면 예약 시각, 그것도 없으면 작성 시각이다. */
   displayAt: string;
+  scheduledAt: string | null;
+  reviewedAt: string | null;
+  rejectedReason: string | null;
 };
 
 /**
@@ -102,4 +105,25 @@ const CAMPAIGN_STATUS: Record<
 
 export function campaignStatusView(status: CampaignStatus) {
   return CAMPAIGN_STATUS[status];
+}
+
+/**
+ * 예약 취소 버튼을 보여 줄지. 서버와 DB 함수가 다시 확인하므로 화면 편의를 위한 판단이다.
+ * 계정 주인만, 승인을 거치지 않은 예약이, 시각 전일 때만 취소할 수 있다.
+ */
+export function canCancelCampaign(
+  campaign: Pick<
+    CampaignRow,
+    "status" | "reviewedAt" | "scheduledAt" | "branchId"
+  >,
+  accountBranchId: string | null,
+  now: Date,
+): boolean {
+  return (
+    campaign.status === "scheduled" &&
+    campaign.reviewedAt === null &&
+    campaign.branchId === accountBranchId &&
+    campaign.scheduledAt !== null &&
+    new Date(campaign.scheduledAt) > now
+  );
 }
