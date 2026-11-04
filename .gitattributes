@@ -1,0 +1,4 @@
+# Windows에서 작업해도 저장소는 LF로 통일한다. CI(Linux)·Prettier와 줄바꿈 차이로 diff가 오염되는 것을 막기 위해.
+* text=auto eol=lf
+*.ico binary
+*.png binary

@@ -1,0 +1,9 @@
+.next
+node_modules
+package-lock.json
+next-env.d.ts
+# 핸드오프 원본은 그대로 보존한다. 포맷이 바뀌면 원본과 비교하기 어려워진다.
+design
+private
+# 표·한글 문서는 사람이 다듬는 글이라 자동 정렬 대상에서 뺀다.
+*.md

@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/*
+ * 값의 원본은 design/design_handoff_dahda_console/0 디자인 시스템.dc.html의 :root다.
+ * tokens.test.ts가 두 곳이 같은지 검사한다. 디자인이 바뀌면 여기 값을 함께 고쳐야 테스트가 통과한다.
+ *
+ * 라이트 전용이라 prefers-color-scheme 분기를 두지 않는다(다크 모드는 범위 밖).
+ */
+:root {
+  --bg: #f8f6f5;
+  --surface: #ffffff;
+  --surface-2: #f2eeec;
+  --surface-3: #e9e3e0;
+  --border: #e7e2df;
+  --border-strong: #cfc7c3;
+
+  --text: #1c1718;
+  --text-muted: #655c5e;
+  --text-disabled: #a39a9c;
+
+  --primary: #6b2f57;
+  --primary-hover: #5a2649;
+  --primary-pressed: #4a1e3c;
+  --primary-fg: #ffffff;
+  --primary-subtle: #f4e9f0;
+
+  --danger: #b42318;
+  --danger-hover: #9a1d14;
+  --danger-pressed: #7f1810;
+  --danger-fg: #ffffff;
+  --danger-subtle: #fcedeb;
+
+  --focus: #6b2f57;
+  --overlay: rgba(28, 23, 24, 0.48);
+  --skeleton: #ede8e5;
+
+  /* 상태 색은 항상 모양+글자와 함께 쓴다. 색만으로 구분하지 않는다. */
+  --st-idle: #655c5e;
+  --st-sent: #4b5a70;
+  --st-delivered: #1d7a4a;
+  --st-failed: #b42318;
+  --st-pending: #8f5b00;
+  --st-approved: #1d7a4a;
+  --st-rejected: #b42318;
+
+  --shadow-overlay:
+    0 8px 24px rgba(28, 23, 24, 0.12), 0 1px 2px rgba(28, 23, 24, 0.08);
+
+  --control-h: 36px;
+  --control-h-touch: 44px;
+  --row-dense: 36px;
+  --row-default: 44px;
+  --sidebar-w: 240px;
+  --sidebar-w-collapsed: 64px;
+  --topbar-h: 56px;
+  --content-max: 1200px;
+  --sheet-w: 420px;
+
+  color-scheme: light;
+}
+
+/*
+ * --color-*: initial로 Tailwind 기본 색(red-500 등)을 지운다.
+ * "화면마다 새 색을 만들지 않는다"는 규칙을 리뷰가 아니라 클래스가 없어서 막히게 하려는 것이다.
+ * shadcn/ui가 기대하는 이름(background, foreground 등)은 컴포넌트를 들여오는 1-4에서 이 위에 연결한다.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-white: #ffffff;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-pressed: var(--primary-pressed);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-pressed: var(--danger-pressed);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-focus: var(--focus);
+  --color-overlay: var(--overlay);
+  --color-skeleton: var(--skeleton);
+  --color-status-idle: var(--st-idle);
+  --color-status-sent: var(--st-sent);
+  --color-status-delivered: var(--st-delivered);
+  --color-status-failed: var(--st-failed);
+  --color-status-pending: var(--st-pending);
+  --color-status-approved: var(--st-approved);
+  --color-status-rejected: var(--st-rejected);
+
+  --font-sans: SUIT, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+  /* 디자인의 font 단축 토큰을 Tailwind text-* 하나로 쓸 수 있게 크기·줄 높이·굵기를 묶는다. */
+  --text-display: 32px;
+  --text-display--line-height: 40px;
+  --text-display--font-weight: 800;
+  --text-title-lg: 24px;
+  --text-title-lg--line-height: 32px;
+  --text-title-lg--font-weight: 700;
+  --text-title: 18px;
+  --text-title--line-height: 26px;
+  --text-title--font-weight: 700;
+  --text-body: 15px;
+  --text-body--line-height: 24px;
+  --text-body--font-weight: 400;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 20px;
+  --text-body-sm--font-weight: 400;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption--font-weight: 500;
+  --text-number-lg: 28px;
+  --text-number-lg--line-height: 34px;
+  --text-number-lg--font-weight: 700;
+  --text-number-lg--letter-spacing: -0.01em;
+  /* 이름은 mono지만 고정폭 글꼴이 아니다. SUIT + tabular-nums + 자간으로 번호·바이트를 맞춘다(핸드오프 지정). */
+  --text-mono: 13px;
+  --text-mono--line-height: 20px;
+  --text-mono--font-weight: 500;
+  --text-mono--letter-spacing: 0.02em;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+
+  /* 이름을 --shadow-overlay로 같게 두면 자기 자신을 참조해 값이 무효가 된다. 클래스는 shadow-floating. */
+  --shadow-floating: var(--shadow-overlay);
+}
+
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 24px;
+    /* 표의 숫자 열이 자릿수마다 흔들리지 않도록 앱 전체 기본값으로 둔다. */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+}
