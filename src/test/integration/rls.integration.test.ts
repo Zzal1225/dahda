@@ -366,7 +366,7 @@ describe("수신거부", () => {
 
   it("지점은 등록할 수 있지만 해제하지 못한다", async () => {
     const token = await f.tokenOf("branch1");
-    const phone = "01099991001";
+    const phone = "01000091001";
 
     const inserted = await rest(
       token,
@@ -386,7 +386,7 @@ describe("수신거부", () => {
   });
 
   it("본사는 해제할 수 있다", async () => {
-    const phone = "01099991002";
+    const phone = "01000091002";
     must(
       await service
         .from("opt_outs")
@@ -408,13 +408,13 @@ describe("수신거부", () => {
       token,
       "POST",
       "opt_outs",
-      entry(f.orgB, f.users.branch1.id, "01099991003"),
+      entry(f.orgB, f.users.branch1.id, "01000091003"),
     );
     const spoofed = await rest(
       token,
       "POST",
       "opt_outs",
-      entry(f.orgA, f.users.hq.id, "01099991004"),
+      entry(f.orgA, f.users.hq.id, "01000091004"),
     );
 
     expect(otherOrg.code).toBe(DENIED);
@@ -425,7 +425,7 @@ describe("수신거부", () => {
     const result = await rest(
       await f.tokenOf("hq"),
       "PATCH",
-      "opt_outs?phone=eq.01099990001",
+      "opt_outs?phone=eq.01000090001",
       {
         reason: "변경",
       },

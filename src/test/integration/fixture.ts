@@ -311,8 +311,8 @@ export async function createFixture() {
     await service
       .from("opt_outs")
       .insert([
-        { org_id: orgA, phone: "01099990001", source: "manual" },
-        { org_id: orgB, phone: "01099990002", source: "manual" },
+        { org_id: orgA, phone: "01000090001", source: "manual" },
+        { org_id: orgB, phone: "01000090002", source: "manual" },
       ])
       .select("id"),
   );
