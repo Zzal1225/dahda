@@ -31,7 +31,7 @@ export async function listCampaigns(
   let request = supabase
     .from("campaigns")
     .select(
-      "id, branch_id, body, kind, is_ad, status, recipient_count, unit_price, estimated_cost, sent_count, delivered_count, failed_count, started_at, scheduled_at, reviewed_at, rejected_reason, created_at, branches(name)",
+      "id, branch_id, body, kind, is_ad, status, recipient_count, unit_price, estimated_cost, sent_count, delivered_count, failed_count, started_at, scheduled_at, reviewed_at, rejected_reason, retry_of_campaign_id, created_at, branches(name)",
     )
     .neq("status", "draft");
 
@@ -69,5 +69,6 @@ export async function listCampaigns(
     scheduledAt: row.scheduled_at,
     reviewedAt: row.reviewed_at,
     rejectedReason: row.rejected_reason,
+    retryOfCampaignId: row.retry_of_campaign_id,
   }));
 }

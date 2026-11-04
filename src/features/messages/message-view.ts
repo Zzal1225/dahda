@@ -43,3 +43,9 @@ export function pagesForRange(
     (_, offset) => first + offset,
   );
 }
+
+/**
+ * 다시 보내도 실패할 가능성이 높은 코드. 재발송 확인 대화상자의 경고에 쓴다(핸드오프).
+ * 확인 필요: 지금은 가짜 발송기의 코드다. 솔라피를 붙일 때 그 코드로 다시 정한다.
+ */
+export const HOPELESS_FAIL_CODES = ["E301", "E302", "E201"] as const;

@@ -20,6 +20,7 @@ export type CampaignRow = {
   scheduledAt: string | null;
   reviewedAt: string | null;
   rejectedReason: string | null;
+  retryOfCampaignId: string | null;
 };
 
 /**
@@ -126,4 +127,22 @@ export function canCancelCampaign(
     campaign.scheduledAt !== null &&
     new Date(campaign.scheduledAt) > now
   );
+}
+
+const FALLBACK_POLL_MS = 10_000;
+
+/**
+ * 구독이 연결되지 않았을 때의 폴링 간격. 소켓이 아예 안 붙으면 상태가 연결 중에 머무르므로 끊김만 보면 화면이 멈춘다.
+ * 바뀔 일이 없는 건만 있으면 폴링하지 않는다.
+ */
+export function fallbackPollMs(
+  live: "connecting" | "live" | "offline",
+  campaigns: readonly Pick<CampaignRow, "status">[] | undefined,
+): number | false {
+  if (live === "live") return false;
+  const changing = campaigns?.some(
+    (campaign) =>
+      campaign.status === "sending" || campaign.status === "scheduled",
+  );
+  return changing ? FALLBACK_POLL_MS : false;
 }

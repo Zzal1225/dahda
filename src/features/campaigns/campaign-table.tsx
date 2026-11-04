@@ -35,8 +35,15 @@ function buildColumns(showBranch: boolean): DataTableColumn<CampaignRow>[] {
       header: "제목",
       meta: { width: "minmax(180px, 1fr)" },
       cell: ({ row }) => (
-        <span className="truncate">
-          {campaignTitle(row.original.body, row.original.isAd)}
+        <span className="flex min-w-0 items-center gap-1.5">
+          {row.original.retryOfCampaignId && (
+            <span className="flex-none rounded-sm border border-border-strong px-1 text-caption">
+              재발송
+            </span>
+          )}
+          <span className="truncate">
+            {campaignTitle(row.original.body, row.original.isAd)}
+          </span>
         </span>
       ),
     }),
