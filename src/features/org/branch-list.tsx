@@ -1,16 +1,76 @@
 "use client";
 
+import { createColumnHelper } from "@tanstack/react-table";
 import { Store } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  DataTable,
+  dataTableFeatures,
+  type DataTableColumn,
+} from "@/components/ui/data-table";
 import { formatWon, isLowBalance } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { BranchAccountDialog, BranchNameDialog } from "./branch-dialogs";
 import type { BranchRow } from "./branch-rows";
 
-/**
- * 지점은 많아야 수십 개라 가상화·정렬·필터가 필요 없다. 공통 DataTable은 그 요구가 생기는 step2에서 만들고,
- * 이 표도 그때 옮긴다. 지금 만들면 요구를 모른 채 추상화하게 된다.
- */
+const column = createColumnHelper<typeof dataTableFeatures, BranchRow>();
+
+function buildColumns(isTrial: boolean): DataTableColumn<BranchRow>[] {
+  return [
+    column.display({
+      id: "name",
+      header: "지점",
+      meta: { width: "minmax(120px, 1fr)" },
+      cell: ({ row }) => <span className="font-bold">{row.original.name}</span>,
+    }),
+    column.display({
+      id: "account",
+      header: "담당 계정",
+      meta: { width: "minmax(120px, 1fr)" },
+      cell: ({ row }) =>
+        row.original.accountName ?? (
+          <span className="text-text-muted">미지정</span>
+        ),
+    }),
+    column.display({
+      id: "balance",
+      header: "잔액",
+      meta: { width: "minmax(160px, 1fr)", align: "right" },
+      cell: ({ row }) => {
+        const low = isLowBalance(row.original.balance);
+        return (
+          <span className={cn(low && "font-bold text-status-pending")}>
+            {low && <span className="mr-2 text-caption">잔액 적음</span>}
+            {formatWon(row.original.balance)}
+          </span>
+        );
+      },
+    }),
+    column.display({
+      id: "actions",
+      header: () => <span className="sr-only">작업</span>,
+      meta: { width: "200px", align: "right" },
+      cell: ({ row }) => (
+        <>
+          <BranchNameDialog
+            branch={row.original}
+            trigger={(open) => (
+              <Button variant="ghost" onClick={open}>
+                이름 변경
+              </Button>
+            )}
+          />
+          {/* 체험 계정은 실제 계정을 만들 수 없다. 서버도 막지만 누르면 실패할 버튼은 보여 주지 않는다. */}
+          {!isTrial && !row.original.accountName && (
+            <BranchAccountDialog branch={row.original} />
+          )}
+        </>
+      ),
+    }),
+  ];
+}
+
 export function BranchList({
   rows,
   isTrial,
@@ -18,6 +78,8 @@ export function BranchList({
   rows: readonly BranchRow[];
   isTrial: boolean;
 }) {
+  const columns = useMemo(() => buildColumns(isTrial), [isTrial]);
+
   return (
     <>
       <div className="flex items-center justify-between gap-4">
@@ -50,72 +112,13 @@ export function BranchList({
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border bg-surface">
-          <table className="w-full text-body-sm">
-            <thead>
-              <tr className="h-(--row-dense) border-b border-border bg-surface-2 text-left text-caption text-text-muted">
-                <th scope="col" className="px-4 font-bold">
-                  지점
-                </th>
-                <th scope="col" className="px-4 font-bold">
-                  담당 계정
-                </th>
-                <th scope="col" className="px-4 text-right font-bold">
-                  잔액
-                </th>
-                <th scope="col" className="px-4 text-right font-bold">
-                  <span className="sr-only">작업</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const low = isLowBalance(row.balance);
-                return (
-                  <tr
-                    key={row.id}
-                    className="h-(--row-default) border-b border-border last:border-b-0"
-                  >
-                    <th scope="row" className="px-4 text-left font-bold">
-                      {row.name}
-                    </th>
-                    <td
-                      className={cn(
-                        "px-4",
-                        !row.accountName && "text-text-muted",
-                      )}
-                    >
-                      {row.accountName ?? "미지정"}
-                    </td>
-                    <td
-                      className={cn(
-                        "px-4 text-right",
-                        low && "font-bold text-status-pending",
-                      )}
-                    >
-                      {low && (
-                        <span className="mr-2 text-caption">잔액 적음</span>
-                      )}
-                      {formatWon(row.balance)}
-                    </td>
-                    <td className="px-2 py-1 text-right whitespace-nowrap">
-                      <BranchNameDialog
-                        branch={row}
-                        trigger={(open) => (
-                          <Button variant="ghost" onClick={open}>
-                            이름 변경
-                          </Button>
-                        )}
-                      />
-                      {/* 체험 계정은 실제 계정을 만들 수 없다. 서버도 막지만 누르면 실패할 버튼은 보여 주지 않는다. */}
-                      {!isTrial && !row.accountName && (
-                        <BranchAccountDialog branch={row} />
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            ariaLabel="지점"
+            columns={columns}
+            rows={[...rows]}
+            getRowId={(row) => row.id}
+            rowHeight={44}
+          />
         </div>
       )}
     </>

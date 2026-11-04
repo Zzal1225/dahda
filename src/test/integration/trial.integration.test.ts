@@ -10,6 +10,7 @@ const DENIED = "42501";
 
 let f: Fixture;
 const createdUsers: string[] = [];
+const createdOrgs: string[] = [];
 
 beforeAll(async () => {
   f = await createFixture();
@@ -42,6 +43,7 @@ async function createTrialUser() {
   const orgId = must(
     await service.rpc("create_trial_org", { p_user_id: data.user.id }),
   );
+  createdOrgs.push(orgId);
   return { userId: data.user.id, email, orgId };
 }
 

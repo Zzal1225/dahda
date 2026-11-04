@@ -59,7 +59,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "발송 내역",
     shortLabel: "내역",
     icon: "list",
-    ready: false,
+    ready: true,
   },
   {
     href: "/billing",
