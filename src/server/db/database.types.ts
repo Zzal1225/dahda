@@ -377,6 +377,9 @@ isOneToOne: false
               "attempt_count": number,"body": string,"campaign_id": string,"campaign_status": Database["public"]['Enums']["campaign_status"],"id": number,"idempotency_key": string,"is_ad": boolean,"is_trial": boolean,"kind": Database["public"]['Enums']["campaign_kind"],"phone": string,"sender_phone": string
             }[]
                            },
+"complete_campaign":
+{ Args: { "p_campaign_id": string }; Returns: boolean
+                           },
 "create_trial_org":
 { Args: { "p_user_id": string }; Returns: string
                            },

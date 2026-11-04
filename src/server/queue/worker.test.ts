@@ -43,6 +43,7 @@ function setup(
   const updates: MessageUpdate[] = [];
   const started: string[] = [];
   const sent: string[] = [];
+  const settled: string[] = [];
   const conflicts = new Set(options.conflictOnce ?? []);
   const store: QueueStore = {
     claim: async () => claimed,
@@ -56,6 +57,7 @@ function setup(
       }
       return applied;
     },
+    settleCampaigns: async (ids) => void settled.push(...ids),
     readStates: async (ids) =>
       new Map(
         ids.flatMap((id) => {
@@ -88,6 +90,7 @@ function setup(
     updates,
     started,
     sent,
+    settled,
     tick: (now = DAY) =>
       runWorkerTick({
         store,
@@ -193,6 +196,19 @@ describe("runWorkerTick", () => {
     const t = setup([message(1)], { send: async () => [] });
     expect((await t.tick()).retried).toBe(1);
     expect(t.updates[0]?.state.status).toBe("queued");
+  });
+
+  it("임대만 반복돼 실패한 건도 발송을 시작해 완료될 수 있게 한다", async () => {
+    const t = setup([message(1, { attemptCount: 5 })]);
+    await t.tick();
+    expect(t.started).toEqual(["c1"]);
+    expect(t.settled).toEqual(["c1"]);
+  });
+
+  it("미루기만 한 묶음은 정산하지 않는다", async () => {
+    const t = setup([message(1, { isAd: true })]);
+    await t.tick(NIGHT);
+    expect(t.settled).toEqual([]);
   });
 
   describe("야간 광고", () => {

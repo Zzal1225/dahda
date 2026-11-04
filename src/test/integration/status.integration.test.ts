@@ -16,6 +16,14 @@ let campaignId: string;
 beforeAll(async () => {
   f = await createFixture();
   campaignId = f.campaigns.find((c) => c.branch_id === f.branch1)?.id ?? "";
+  // 집계 트리거가 확정 수를 올리므로, 시험하는 메시지 수만큼 수신자 수가 있어야 제약에 걸리지 않는다.
+  must(
+    await service
+      .from("campaigns")
+      .update({ recipient_count: 100, unit_price: 0, estimated_cost: 0 })
+      .eq("id", campaignId)
+      .select("id"),
+  );
 });
 
 afterAll(async () => {

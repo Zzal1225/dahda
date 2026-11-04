@@ -107,7 +107,7 @@ export function createFakeProvider(options: FakeProviderOptions): SmsProvider {
               occurredAt,
             };
 
-      void signRequest(options.secret, JSON.stringify({ events: [event] }))
+      void signFakeWebhook(options.secret, JSON.stringify({ events: [event] }))
         .then(options.deliver)
         .catch(options.onDeliveryError);
     }, delayMs);
@@ -157,7 +157,8 @@ export function createFakeProvider(options: FakeProviderOptions): SmsProvider {
   };
 }
 
-async function signRequest(
+/** 테스트도 실제와 같은 서명을 쓰도록 내보낸다. */
+export async function signFakeWebhook(
   secret: string,
   rawBody: string,
 ): Promise<WebhookRequest> {

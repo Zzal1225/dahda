@@ -8,6 +8,38 @@ const toIso = (value: Date | null | undefined) => value?.toISOString() ?? null;
 const toDate = (value: string | null) => (value ? new Date(value) : null);
 
 /**
+ * 모든 메시지가 확정된 발송 건을 완료한다. 워커와 웹훅이 함께 쓴다.
+ * 판단은 status.ts, 상태와 환불을 한 트랜잭션에 묶는 일은 complete_campaign이 한다.
+ */
+export async function settleCampaigns(
+  supabase: SupabaseClient<Database>,
+  ids: readonly string[],
+): Promise<void> {
+  if (ids.length === 0) return;
+  const { data, error } = await supabase
+    .from("campaigns")
+    .select("id, status, recipient_count, delivered_count, failed_count")
+    .in("id", [...ids]);
+  if (error) throw new Error(`발송 건 조회 실패: ${error.message}`);
+
+  for (const campaign of data) {
+    const transition = transitionCampaign(campaign.status, {
+      type: "complete",
+      recipientCount: campaign.recipient_count,
+      deliveredCount: campaign.delivered_count,
+      failedCount: campaign.failed_count,
+    });
+    if (!transition.ok) continue; // 아직 남았거나 이미 끝난 건이다.
+    const { error: completeError } = await supabase.rpc("complete_campaign", {
+      p_campaign_id: campaign.id,
+    });
+    if (completeError) {
+      throw new Error(`완료 처리 실패: ${completeError.message}`);
+    }
+  }
+}
+
+/**
  * DB 열 이름과 TS 타입의 변환은 이 경계에서 한 번만 한다(CLAUDE.md).
  * supabase-js는 타입만 가져온다. 실제 클라이언트는 Next.js와 Deno가 각자 만들어 넘긴다.
  */
@@ -66,6 +98,8 @@ export function createSupabaseQueueStore(
       if (error) throw new Error(`결과 저장 실패: ${error.message}`);
       return data;
     },
+
+    settleCampaigns: (ids) => settleCampaigns(supabase, ids),
 
     async readStates(ids) {
       const { data, error } = await supabase

@@ -54,6 +54,8 @@ export interface QueueStore {
   /** 조건이 맞아 실제로 바꾼 id를 돌려준다. */
   applyUpdates(updates: readonly MessageUpdate[]): Promise<number[]>;
   readStates(ids: readonly number[]): Promise<Map<number, MessageState>>;
+  /** 모든 메시지가 확정된 발송 건을 완료 처리한다. 아직이면 아무 일도 하지 않는다. */
+  settleCampaigns(ids: readonly string[]): Promise<void>;
 }
 
 export type WorkerOptions = {
@@ -72,6 +74,12 @@ export type WorkerSummary = {
   retried: number;
   failed: number;
   deferred: number;
+};
+
+type PendingEvent = {
+  event: MessageEvent;
+  provider: string;
+  campaignId: string;
 };
 
 const QUEUED: MessageState = {
@@ -106,8 +114,9 @@ export async function runWorkerTick(
 
   const startedAt = now();
   const plain: MessageUpdate[] = [];
-  const events = new Map<number, { event: MessageEvent; provider: string }>();
+  const events = new Map<number, PendingEvent>();
   const sendable: ClaimedMessage[] = [];
+  const startable: ClaimedMessage[] = [];
 
   for (const message of claimed) {
     if (message.isAd && isNightKst(startedAt)) {
@@ -129,14 +138,18 @@ export async function runWorkerTick(
           at: startedAt,
         },
         provider: providerFor(message).name,
+        campaignId: message.campaignId,
       });
+      startable.push(message);
       summary.failed += 1;
     } else {
       sendable.push(message);
+      startable.push(message);
     }
   }
 
-  await startCampaigns(store, sendable);
+  // 실패로 끝나는 건도 시작해야 한다. 완료 전이는 sending에서만 열려 있다.
+  await startCampaigns(store, startable);
 
   for (const [provider, group] of groupByProvider(sendable, providerFor)) {
     const results = await sendSafely(provider, group);
@@ -151,6 +164,7 @@ export async function runWorkerTick(
             at,
           },
           provider: provider.name,
+          campaignId: message.campaignId,
         });
         summary.accepted += 1;
         continue;
@@ -173,6 +187,7 @@ export async function runWorkerTick(
         events.set(message.id, {
           event: { type: "send_failed", failCode, at },
           provider: provider.name,
+          campaignId: message.campaignId,
         });
         summary.failed += 1;
       }
@@ -181,6 +196,10 @@ export async function runWorkerTick(
 
   if (plain.length > 0) await store.applyUpdates(plain);
   await applyEvents(store, events);
+  // 업체 거절만으로 모든 건이 끝나면 웹훅이 오지 않으므로 여기서 마무리해야 한다.
+  await store.settleCampaigns([
+    ...new Set([...events.values()].map((pending) => pending.campaignId)),
+  ]);
   return summary;
 }
 
@@ -244,7 +263,7 @@ async function sendSafely(
 /** 웹훅이 먼저 온 행은 조건이 어긋나 빠진다. 다시 읽어 status.ts에 맡긴다. 접수 시각만 채우고 끝날 수 있다. */
 async function applyEvents(
   store: QueueStore,
-  events: ReadonlyMap<number, { event: MessageEvent; provider: string }>,
+  events: ReadonlyMap<number, PendingEvent>,
 ): Promise<void> {
   let states = new Map<number, MessageState>(
     [...events.keys()].map((id) => [id, QUEUED]),
