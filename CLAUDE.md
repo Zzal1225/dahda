@@ -62,7 +62,7 @@ src/
   features/
     auth/              로그인·체험·역할 전환
     org/               본사·지점·구성원
-    contacts/          주소록·그룹·수신거부·엑셀 업로드(worker/)
+    contacts/          주소록·그룹·수신거부·엑셀 업로드(worker/). 번호 정규화는 lib/phone.ts 하나만 쓴다
     campaigns/         발송 건 작성·승인·내역, status.ts(상태 전이), campaignSchema.ts(사용자 작성)
     messages/          수신자별 메시지 표(10만 행), useTableState.ts(사용자 요청으로 Claude 작성)
     billing/           충전·거래 기록·토스 연동 화면
