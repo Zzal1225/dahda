@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { formatKstDateTime, formatKstTime, periodToRange } from "./kst";
+import {
+  formatKstDateTime,
+  formatKstTime,
+  kstDayOptions,
+  kstDayTimeToUtc,
+  kstHour,
+  kstTimeOptions,
+  periodToRange,
+} from "./kst";
 
 describe("KST 표시", () => {
   it("UTC를 KST로 바꿔 표시한다", () => {
@@ -63,4 +71,55 @@ describe("periodToRange", () => {
       });
     },
   );
+});
+
+describe("kstHour", () => {
+  it.each([
+    ["2026-11-04T12:00:00Z", 21],
+    ["2026-11-04T15:00:00Z", 0],
+    ["2026-11-04T23:00:00Z", 8],
+  ])("%s → %d", (iso, hour) => {
+    expect(kstHour(new Date(iso))).toBe(hour);
+  });
+});
+
+describe("kstDayTimeToUtc", () => {
+  it("KST를 UTC로 바꾼다", () => {
+    expect(kstDayTimeToUtc("2026-11-05", "08:00")?.toISOString()).toBe(
+      "2026-11-04T23:00:00.000Z",
+    );
+  });
+
+  it.each([
+    ["", "10:00"],
+    ["2026-11-04", ""],
+    ["2026-13-01", "10:00"],
+    ["2026-02-31", "10:00"],
+    ["2026-11-04", "24:00"],
+    ["2026-11-04", "10:60"],
+    ["abc", "def"],
+  ])("잘못된 값 %j %j는 null이다", (day, time) => {
+    expect(kstDayTimeToUtc(day, time)).toBeNull();
+  });
+});
+
+describe("kstDayOptions", () => {
+  it("KST 오늘부터 요일과 함께 만든다", () => {
+    // KST 2026-11-05 00:30, UTC로는 11-04
+    const options = kstDayOptions(new Date("2026-11-04T15:30:00Z"), 2);
+    expect(options).toEqual([
+      { value: "2026-11-05", label: "2026.11.05 (목)" },
+      { value: "2026-11-06", label: "2026.11.06 (금)" },
+    ]);
+  });
+});
+
+describe("kstTimeOptions", () => {
+  it("30분 단위 48개다", () => {
+    const options = kstTimeOptions();
+    expect(options).toHaveLength(48);
+    expect(options[0]).toBe("00:00");
+    expect(options[1]).toBe("00:30");
+    expect(options[47]).toBe("23:30");
+  });
 });

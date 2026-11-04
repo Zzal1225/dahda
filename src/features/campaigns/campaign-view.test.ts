@@ -27,11 +27,34 @@ const base: CampaignRow = {
 
 describe("campaignTitle", () => {
   it("20자까지는 그대로 둔다", () => {
-    expect(campaignTitle("가".repeat(20))).toBe("가".repeat(20));
+    expect(campaignTitle("가".repeat(20), false)).toBe("가".repeat(20));
   });
 
   it("넘으면 자르고 말줄임표를 붙인다", () => {
-    expect(campaignTitle("가".repeat(21))).toBe(`${"가".repeat(20)}…`);
+    expect(campaignTitle("가".repeat(21), false)).toBe(`${"가".repeat(20)}…`);
+  });
+
+  it("광고는 앞뒤 고정 문구를 빼고 내용을 보여 준다", () => {
+    expect(
+      campaignTitle(
+        "(광고)dahda마트 010-0000-0001\n주말 특가\n무료거부 080",
+        true,
+      ),
+    ).toBe("주말 특가");
+  });
+
+  it("광고 본문이 여러 줄이어도 내용을 이어서 보여 준다", () => {
+    expect(campaignTitle("(광고)a\n첫째\n둘째\n무료거부", true)).toBe(
+      "첫째 둘째",
+    );
+  });
+
+  it("고정 문구가 없는 형식이면 전체를 보여 준다", () => {
+    expect(campaignTitle("한 줄", true)).toBe("한 줄");
+  });
+
+  it("비광고는 줄바꿈이 있어도 그대로 쓴다", () => {
+    expect(campaignTitle("첫째\n둘째\n셋째", false)).toBe("첫째\n둘째\n셋째");
   });
 });
 

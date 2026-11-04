@@ -2,7 +2,7 @@
 
 이 파일은 Claude Code가 이 저장소에서 작업할 때 따르는 규칙이다.
 이 프로젝트는 **두 번째 포트폴리오**다. nanaki(첫 프로젝트)와 같은 방식으로 Claude가 구현하고 사용자는 "왜" 주석과
-`private/learning/`으로 공부하되, **핵심 파일 1개(`campaignSchema`)는 사용자가 직접 짠다**(5-1 참고). 상세 기획은 `docs/기획서.md`를 따른다.
+`private/learning/`으로 공부하되, **핵심 파일 3개도 사용자 요청으로 Claude가 작성했다**(5-1 참고). 상세 기획은 `docs/기획서.md`를 따른다.
 
 ---
 
@@ -63,7 +63,7 @@ src/
     auth/              로그인·체험·역할 전환
     org/               본사·지점·구성원
     contacts/          주소록·그룹·수신거부·엑셀 업로드(worker/). 번호 정규화는 lib/phone.ts 하나만 쓴다
-    campaigns/         발송 건 작성·승인·내역, status.ts(상태 전이), campaignSchema.ts(사용자 작성)
+    campaigns/         발송 건 작성·승인·내역, status.ts(상태 전이), campaignSchema.ts(사용자 요청으로 Claude 작성)
     messages/          수신자별 메시지 표(10만 행), useTableState.ts(사용자 요청으로 Claude 작성)
     billing/           충전·거래 기록·토스 연동 화면
   server/
@@ -110,11 +110,7 @@ private/               learning/, interview-questions.md, decisions 초안 (giti
 ## 5. 워크플로우
 
 ### 5-1. 구현 방식 (기본값, 가장 중요)
-Claude가 기능을 직접 구현한다. 단, 아래 파일은 **사용자가 직접 작성**한다. Claude는 설계 설명, 입력·출력 정의, 힌트, 코드 리뷰, 테스트 작성만 한다.
-사용자가 요청하지 않는 한 이 파일의 본문을 써 주지 않는다.
-1. `features/campaigns/campaignSchema.ts` — 발송 폼 Zod 스키마(바이트·광고 규칙·예약 시각)
-
-`server/auth/requireRole.ts`와 `features/messages/useTableState.ts`는 처음에 직접 작성 대상이었으나 2026-11-04 사용자 요청으로 Claude가 작성했다.
+Claude가 기능을 직접 구현한다. 처음에는 `requireRole`, `useTableState`, `campaignSchema` 3개를 사용자가 직접 작성하기로 했으나, 2026-11-04 사용자 요청으로 모두 Claude가 작성했다. 사용자는 이 파일들을 설명할 수 있어야 하므로 학습 노트의 질문에 직접 답한다.
 
 나머지 절차는 nanaki와 같다.
 1. **시작 전 합의**: 입력·출력·파일 위치를 3~5줄로 정리하고, 사용자가 정해야 하는 결정만 추천안과 함께 묻는다.

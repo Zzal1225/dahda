@@ -45,14 +45,14 @@ isOneToOne: false
                   ]
                 },"campaigns": {
                   Row: {
-                    "body": string,"branch_id": string | null,"completed_at": string | null,"created_at": string,"created_by": string | null,"delivered_count": number,"estimated_cost": number,"failed_count": number,"id": string,"is_ad": boolean,"kind": Database["public"]['Enums']["campaign_kind"],"org_id": string,"recipient_count": number,"rejected_reason": string | null,"requested_at": string | null,"retry_of_campaign_id": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"scheduled_at": string | null,"sender_phone": string | null,"sent_count": number,"started_at": string | null,"status": Database["public"]['Enums']["campaign_status"],"unit_price": number,"updated_at": string
+                    "body": string,"branch_id": string | null,"client_request_id": string | null,"completed_at": string | null,"created_at": string,"created_by": string | null,"delivered_count": number,"estimated_cost": number,"failed_count": number,"id": string,"is_ad": boolean,"kind": Database["public"]['Enums']["campaign_kind"],"org_id": string,"recipient_count": number,"rejected_reason": string | null,"requested_at": string | null,"retry_of_campaign_id": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"scheduled_at": string | null,"sender_phone": string | null,"sent_count": number,"started_at": string | null,"status": Database["public"]['Enums']["campaign_status"],"unit_price": number,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body"?: string,"branch_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"delivered_count"?: number,"estimated_cost"?: number,"failed_count"?: number,"id"?: string,"is_ad"?: boolean,"kind"?: Database["public"]['Enums']["campaign_kind"],"org_id": string,"recipient_count"?: number,"rejected_reason"?: string | null,"requested_at"?: string | null,"retry_of_campaign_id"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"scheduled_at"?: string | null,"sender_phone"?: string | null,"sent_count"?: number,"started_at"?: string | null,"status"?: Database["public"]['Enums']["campaign_status"],"unit_price"?: number,"updated_at"?: string
+                    "body"?: string,"branch_id"?: string | null,"client_request_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"delivered_count"?: number,"estimated_cost"?: number,"failed_count"?: number,"id"?: string,"is_ad"?: boolean,"kind"?: Database["public"]['Enums']["campaign_kind"],"org_id": string,"recipient_count"?: number,"rejected_reason"?: string | null,"requested_at"?: string | null,"retry_of_campaign_id"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"scheduled_at"?: string | null,"sender_phone"?: string | null,"sent_count"?: number,"started_at"?: string | null,"status"?: Database["public"]['Enums']["campaign_status"],"unit_price"?: number,"updated_at"?: string
                   }
                   Update: {
-                    "body"?: string,"branch_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"delivered_count"?: number,"estimated_cost"?: number,"failed_count"?: number,"id"?: string,"is_ad"?: boolean,"kind"?: Database["public"]['Enums']["campaign_kind"],"org_id"?: string,"recipient_count"?: number,"rejected_reason"?: string | null,"requested_at"?: string | null,"retry_of_campaign_id"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"scheduled_at"?: string | null,"sender_phone"?: string | null,"sent_count"?: number,"started_at"?: string | null,"status"?: Database["public"]['Enums']["campaign_status"],"unit_price"?: number,"updated_at"?: string
+                    "body"?: string,"branch_id"?: string | null,"client_request_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"delivered_count"?: number,"estimated_cost"?: number,"failed_count"?: number,"id"?: string,"is_ad"?: boolean,"kind"?: Database["public"]['Enums']["campaign_kind"],"org_id"?: string,"recipient_count"?: number,"rejected_reason"?: string | null,"requested_at"?: string | null,"retry_of_campaign_id"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"scheduled_at"?: string | null,"sender_phone"?: string | null,"sent_count"?: number,"started_at"?: string | null,"status"?: Database["public"]['Enums']["campaign_status"],"unit_price"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -369,11 +369,17 @@ isOneToOne: false
 "create_trial_org_base":
 { Args: { "p_user_id": string }; Returns: string
                            },
+"create_trial_org_with_contacts":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
 "delete_expired_trials":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "reserve_balance":
 { Args: { "p_amount": number,"p_branch_id": string,"p_campaign_id": string,"p_idempotency_key": string,"p_org_id": string }; Returns: number
+                           },
+"submit_campaign":
+{ Args: { "p_body": string,"p_branch_id": string,"p_client_request_id": string,"p_created_by": string,"p_is_ad": boolean,"p_kind": Database["public"]['Enums']["campaign_kind"],"p_org_id": string,"p_recipients": Json,"p_scheduled_at": string,"p_sender_phone": unknown,"p_status": Database["public"]['Enums']["campaign_status"],"p_unit_price": number }; Returns: string
                            },
 "switch_trial_role":
 { Args: { "p_branch_id": string,"p_user_id": string }; Returns: undefined
