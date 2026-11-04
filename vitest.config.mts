@@ -6,7 +6,12 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     // tsconfig의 "@/*"와 같은 규칙. 별칭 플러그인을 더 들이지 않으려고 한 줄로 맞춘다.
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "server-only": fileURLToPath(
+        new URL("./src/test/server-only-stub.ts", import.meta.url),
+      ),
+    },
   },
   test: {
     // 상태 전이·금액 계산은 DOM이 필요 없지만, 파일마다 환경을 고르는 실수를 없애려고 jsdom으로 통일한다.
