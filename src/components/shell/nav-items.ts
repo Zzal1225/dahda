@@ -37,7 +37,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "주소록",
     shortLabel: "주소록",
     icon: "contact",
-    ready: false,
+    ready: true,
   },
   {
     href: "/compose",

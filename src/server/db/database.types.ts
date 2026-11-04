@@ -366,6 +366,9 @@ isOneToOne: false
             "create_trial_org":
 { Args: { "p_user_id": string }; Returns: string
                            },
+"create_trial_org_base":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
 "delete_expired_trials":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
