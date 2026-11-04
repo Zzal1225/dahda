@@ -30,7 +30,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     shortLabel: "지점",
     icon: "store",
     roles: ["hq"],
-    ready: false,
+    ready: true,
   },
   {
     href: "/contacts",
