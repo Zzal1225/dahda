@@ -24,7 +24,7 @@
 | 영역 | 선택 |
 | --- | --- |
 | 프레임워크 | Next.js (App Router) + TypeScript (strict) |
-| 백엔드 | Supabase (Postgres + RLS, Auth, Edge Function, pg_cron, Realtime) |
+| 백엔드 | Supabase (Postgres + RLS, Auth, Edge Function, pg_cron, Realtime). 세션 쿠키는 `@supabase/ssr` |
 | 서버 상태 | TanStack Query (캐시 키는 `['campaigns', branchId, filters]` 형태로 features 안에서 정의) |
 | 화면 상태 | Zustand (역할 전환·선택 행 등 화면 상태만. 서버 데이터 금지) |
 | URL 상태 | nuqs (표 필터·정렬·페이지) |
@@ -70,9 +70,13 @@ src/
     providers/         SmsProvider 인터페이스, solapi/, fake/
     queue/             워커 로직(Edge Function에서 호출), 재시도 규칙
     auth/              requireRole.ts(사용자 작성), RLS 보조
+  server/supabase/     요청 사용자 클라이언트(server.ts), RLS를 건너뛰는 클라이언트(admin.ts)
   server/db/           database.types.ts (supabase gen types 생성, 손으로 고치지 않음)
   test/integration/    RLS·제약·잔액 통합 테스트 (npm run test:integration, 로컬 Supabase 필요)
+  components/shell/    사이드바·상단 바·역할 전환, nav-items.ts(메뉴와 역할)
   components/ui/       shadcn/ui 복사본 + 토큰
+  proxy.ts             토큰 갱신, 세션 없는 요청 이동만 (권한 판단 금지)
+e2e/                   Playwright (npm run test:e2e, 로컬 Supabase 필요)
 supabase/
   migrations/          테이블·RLS·함수(잔액 선점)·pg_cron. 상태·돈 테이블 쓰기는 service_role만 (사용자는 읽기만)
   functions/           Edge Function (send-worker)

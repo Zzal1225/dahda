@@ -48,3 +48,7 @@ next-env.d.ts
 
 # 디자인 핸드오프 원본. 실제 형식의 샘플 전화번호가 있어 로컬에만 둔다
 /design/
+
+# Playwright 결과물
+/test-results
+/playwright-report

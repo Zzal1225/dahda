@@ -363,8 +363,17 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "reserve_balance":
+            "create_trial_org":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
+"delete_expired_trials":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"reserve_balance":
 { Args: { "p_amount": number,"p_branch_id": string,"p_campaign_id": string,"p_idempotency_key": string,"p_org_id": string }; Returns: number
+                           },
+"switch_trial_role":
+{ Args: { "p_branch_id": string,"p_user_id": string }; Returns: undefined
                            }
           }
           Enums: {
