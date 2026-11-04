@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { QueryProvider } from "@/components/providers/query-provider";
 import {
   SidebarSection,
   TopBarSection,
@@ -48,7 +49,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
               </Suspense>
             </header>
             <main className="flex w-full max-w-(--content-max) flex-col gap-5 p-8">
-              {children}
+              <QueryProvider>{children}</QueryProvider>
             </main>
           </div>
         </div>
