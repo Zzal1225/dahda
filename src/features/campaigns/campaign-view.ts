@@ -19,8 +19,17 @@ export type CampaignRow = {
   displayAt: string;
 };
 
-export function campaignTitle(body: string, length = 20): string {
-  return body.length > length ? `${body.slice(0, length)}…` : body;
+/**
+ * 광고의 첫 줄은 (광고)와 전송자 고정 문구라 모든 건이 똑같아 보인다. 사용자가 쓴 내용의 첫 부분을 제목으로 쓴다.
+ */
+export function campaignTitle(
+  body: string,
+  isAd: boolean,
+  length = 20,
+): string {
+  const lines = body.split("\n");
+  const text = isAd && lines.length >= 3 ? lines.slice(1, -1).join(" ") : body;
+  return text.length > length ? `${text.slice(0, length)}…` : text;
 }
 
 export type MessageCounts = {

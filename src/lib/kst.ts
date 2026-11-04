@@ -87,3 +87,42 @@ export function periodToRange(
     to: null,
   };
 }
+
+/** KST 시(0~23). 야간 판단에 쓴다. */
+export function kstHour(value: Date): number {
+  return Number(parts(value).second.slice(0, 2));
+}
+
+const TIME_PATTERN = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+
+/** 예약 입력(KST 날짜·시각)을 UTC로 바꾼다. 입력값의 변환은 이 함수 한 곳에서 한다. 잘못된 값은 null이다. */
+export function kstDayTimeToUtc(day: string, time: string): Date | null {
+  if (!validDay(day) || !TIME_PATTERN.test(time)) return null;
+  const date = new Date(Date.parse(`${day}T${time}:00Z`) - KST_OFFSET_MS);
+  // 2026-02-31처럼 달력에 없는 날은 다음 달로 넘어가므로 되돌려 비교해 걸러 낸다.
+  return parts(date).day === day ? date : null;
+}
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 오늘부터 count일의 예약 날짜 선택지. */
+export function kstDayOptions(
+  now: Date,
+  count: number,
+): { value: string; label: string }[] {
+  const todayStart = kstDayStart(parts(now).day).getTime();
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(todayStart + index * DAY_MS);
+    const { day, date: dotted } = parts(date);
+    const weekday = WEEKDAYS[new Date(`${day}T00:00:00Z`).getUTCDay()];
+    return { value: day, label: `${dotted} (${weekday})` };
+  });
+}
+
+/** 30분 단위 시각 선택지(핸드오프). */
+export function kstTimeOptions(): string[] {
+  return Array.from({ length: 48 }, (_, index) => {
+    const hour = String(Math.floor(index / 2)).padStart(2, "0");
+    return `${hour}:${index % 2 === 0 ? "00" : "30"}`;
+  });
+}

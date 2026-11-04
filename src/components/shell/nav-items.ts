@@ -44,7 +44,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "문자 작성",
     shortLabel: "작성",
     icon: "pencil",
-    ready: false,
+    ready: true,
   },
   {
     href: "/approvals",

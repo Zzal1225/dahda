@@ -35,7 +35,9 @@ function buildColumns(showBranch: boolean): DataTableColumn<CampaignRow>[] {
       header: "제목",
       meta: { width: "minmax(180px, 1fr)" },
       cell: ({ row }) => (
-        <span className="truncate">{campaignTitle(row.original.body)}</span>
+        <span className="truncate">
+          {campaignTitle(row.original.body, row.original.isAd)}
+        </span>
       ),
     }),
     column.display({

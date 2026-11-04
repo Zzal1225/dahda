@@ -164,7 +164,7 @@ export function HistoryScreen({
           <div className="flex items-center justify-between gap-4 px-5 py-4">
             <div className="flex min-w-0 flex-col gap-0.5">
               <h2 className="truncate text-title">
-                {campaignTitle(selected.body, 40)}
+                {campaignTitle(selected.body, selected.isAd, 40)}
               </h2>
               <span className="text-caption text-text-muted">
                 {formatKstDateTime(selected.displayAt)} ·{" "}
