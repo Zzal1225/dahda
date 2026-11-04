@@ -35,8 +35,13 @@ function readRootVars(source: string): Map<string, string> {
 
 // 핸드오프에 실제 형식의 샘플 번호가 있어 design/은 저장소에 올리지 않는다.
 // 그래서 원본이 있는 로컬에서만 비교하고, CI에서는 건너뛴다. 토큰을 고칠 때는 로컬에서 이 테스트를 돌린다.
-describe.skipIf(!existsSync(designFile))("디자인 토큰", () => {
-  const design = readRootVars(readFileSync(designFile, "utf8"));
+// skipIf로 건너뛰어도 describe 본문은 실행되므로, 파일 읽기는 원본이 있을 때만 한다.
+const hasDesign = existsSync(designFile);
+
+describe.skipIf(!hasDesign)("디자인 토큰", () => {
+  const design = hasDesign
+    ? readRootVars(readFileSync(designFile, "utf8"))
+    : new Map<string, string>();
   const css = readRootVars(readFileSync(cssFile, "utf8"));
 
   // 글꼴·간격·둥글기는 Tailwind의 @theme과 기본 간격 단위로 옮겨 이름이 달라지므로 값 토큰만 1:1로 본다.
