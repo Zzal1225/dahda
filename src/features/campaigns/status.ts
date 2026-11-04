@@ -1,4 +1,5 @@
-import type { Database } from "@/server/db/database.types";
+// Edge Function(Deno)도 이 파일을 불러온다. Deno는 타입 전용 import도 경로를 확인하므로 별칭 없이 확장자까지 적는다.
+import type { Database } from "../../server/db/database.types.ts";
 
 /**
  * 상태 전이 규칙은 이 파일 하나에만 둔다. 큐 워커와 웹훅이 각자 판단하면 한쪽만 고쳐져 어긋난다.

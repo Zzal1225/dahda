@@ -126,3 +126,12 @@ export function kstTimeOptions(): string[] {
     return `${hour}:${index % 2 === 0 ? "00" : "30"}`;
   });
 }
+
+/** now 다음에 KST 시계가 hour시 정각을 가리키는 시각 */
+export function nextKstHour(now: Date, hour: number): Date {
+  const kstDayStart =
+    Math.floor((now.getTime() + KST_OFFSET_MS) / DAY_MS) * DAY_MS -
+    KST_OFFSET_MS;
+  const today = kstDayStart + hour * 60 * 60 * 1000;
+  return new Date(today > now.getTime() ? today : today + DAY_MS);
+}
