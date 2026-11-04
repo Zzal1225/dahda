@@ -102,6 +102,9 @@ test.describe("발송 내역", () => {
     await expect(page.getByText("101–120 / 120건")).toBeVisible();
     await expect(page.getByRole("button", { name: "다음" })).toBeDisabled();
 
+    // nuqs는 주소를 조금 늦게 쓰므로, 주소가 바뀐 것을 본 뒤에 새로고침한다.
+    await expect(page).toHaveURL(/page=3/);
+
     // 공유 링크처럼 그 주소로 바로 들어와도 같은 위치다.
     await page.reload();
     await expect(page).toHaveURL(/page=3/);
@@ -149,6 +152,36 @@ test.describe("발송 내역", () => {
     await page.goto(seongsuUrl);
     await expect(campaignTable(page).getByRole("row")).toHaveCount(3);
     await expect(recipientTable(page)).toHaveCount(0);
+  });
+
+  test("태블릿 폭에서도 모든 열을 볼 수 있고 페이지는 가로로 넘치지 않는다", async ({
+    page,
+  }) => {
+    // 접힌 사이드바의 메뉴 이름은 "내역"이라 넓은 화면에서 들어간 뒤 폭을 줄인다.
+    await openHistoryAsTrial(page);
+    await page.setViewportSize({ width: 800, height: 900 });
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(9);
+    const row = campaignTable(page).getByRole("row").nth(1);
+
+    const title = row.getByRole("cell").nth(2);
+    await expect(title).toBeVisible();
+    expect((await title.boundingBox())?.width).toBeGreaterThanOrEqual(180);
+
+    // 표 안에서 가로로 스크롤하면 맨 오른쪽 비용 열까지 닿는다.
+    const cost = row.getByRole("cell").last();
+    await cost.scrollIntoViewIfNeeded();
+    const tableBox = await campaignTable(page).boundingBox();
+    const costBox = await cost.boundingBox();
+    expect((costBox?.x ?? 0) + (costBox?.width ?? 0)).toBeLessThanOrEqual(
+      (tableBox?.x ?? 0) + (tableBox?.width ?? 0) + 1,
+    );
+
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(0);
   });
 
   test("잘못된 URL 값이 있어도 화면이 깨지지 않는다", async ({ page }) => {
