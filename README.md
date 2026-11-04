@@ -78,13 +78,14 @@ docs/             기획서와 설계 결정 기록
 | step4 | 발송 큐·재시도, 실제 문자 업체, 결과 웹훅, 토스 테스트 결제 | 예정 |
 | step5 | 첫 화면, E2E 확대, 성능 측정 정리 | 예정 |
 
-지금 동작하는 것은 로그인, 체험 계정, 역할 전환, 앱 틀, 지점 관리, 발송 내역 조회입니다. 문자 작성과 실제 발송은 아직 없습니다.
+지금 동작하는 것은 로그인, 체험 계정, 역할 전환, 앱 틀, 지점 관리, 발송 내역 조회, 주소록, 수신거부, 엑셀 업로드입니다. 문자 작성과 실제 발송은 아직 없습니다.
 
 ## 기술 스택
 
 | 영역 | 사용 |
 | --- | --- |
 | 표·URL 상태 | TanStack Table, TanStack Virtual, TanStack Query, nuqs |
+| 엑셀 | SheetJS(Web Worker에서 실행) |
 | 프레임워크 | Next.js 16 (App Router, Cache Components), React 19, TypeScript (strict) |
 | 백엔드 | Supabase: Postgres + RLS, Auth, pg_cron |
 | 화면 | Tailwind CSS v4, Radix UI, lucide-react |
@@ -106,6 +107,8 @@ docs/             기획서와 설계 결정 기록
 | 스크롤 프레임 | 6fps | 60fps |
 
 대신 빠르게 스크롤하면 자리 표시가 보이고, 멈춘 뒤 약 0.2초 뒤에 행이 나타납니다.
+
+엑셀 2만 행 파싱을 Web Worker로 옮기면, CPU 6배 저하 조건에서 입력이 막히는 시간이 1,528ms에서 109ms로 줄었습니다. 파싱 자체는 오히려 조금 느려지며(180ms → 251ms), 개발 PC에서는 메인 스레드로도 큰 불편이 없었습니다.
 
 ## 테스트
 

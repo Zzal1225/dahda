@@ -1,11 +1,13 @@
 // 측정 2: 엑셀 1만 행 업로드 중 화면 반응. docs/performance.md의 수치를 만든다.
 //
 // 준비: npx supabase start → npm run db:seed:large → npm run build → npm run start
-// 실행: node scripts/measure-upload.mjs [실행 횟수, 기본 3]
+// 실행: node scripts/measure-upload.mjs [실행 횟수=3] [행 수=10000] [CPU 저하 배수=1]
+//
+// 개발 PC는 빠르므로 사무용 PC를 흉내 내는 CPU 저하 조건도 함께 잰다. 저하 배수는 근사값이다.
 //
 // 파싱 구간에서 세 가지를 잰다. 파싱 시간, 타이머가 밀린 최대 시간(메인 스레드가 멈춘 길이),
 // 파싱 중 실제 마우스 입력이 처리되기까지 걸린 시간.
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "@playwright/test";
@@ -13,7 +15,8 @@ import * as XLSX from "xlsx";
 
 const BASE = process.env.MEASURE_URL ?? "http://127.0.0.1:3000";
 const RUNS = Number(process.argv[2] ?? 3);
-const ROWS = 10_000;
+const ROWS = Number(process.argv[3] ?? 10_000);
+const CPU_THROTTLE = Number(process.argv[4] ?? 1);
 const CLICK_INTERVAL_MS = 50;
 
 const median = (values) =>
@@ -31,8 +34,8 @@ function createFile(dir) {
   ]);
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, "연락처");
-  const path = join(dir, "contacts-10000.xlsx");
-  XLSX.writeFile(book, path);
+  const path = join(dir, `contacts-${ROWS}.xlsx`);
+  writeFileSync(path, XLSX.write(book, { type: "buffer", bookType: "xlsx" }));
   return path;
 }
 
@@ -53,6 +56,10 @@ async function measureOnce(file) {
 
   await page.goto(`${BASE}/contacts/upload`);
   await page.getByRole("button", { name: "파일 선택" }).waitFor();
+
+  // 파일 처리 구간에만 적용한다. 로그인과 화면 진입 시간은 재지 않는다.
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: CPU_THROTTLE });
 
   await page.evaluate(() => {
     const state = { gaps: [], inputDelays: [], longTasks: [] };
@@ -106,9 +113,6 @@ async function measureOnce(file) {
     const end = performance.getEntriesByName("upload:parse-end")[0]?.startTime;
     const inRange = (at) => at >= start && at <= end + 50;
     const state = window.__measure;
-    const gaps = state.gaps
-      .filter((entry) => inRange(entry.at))
-      .map((entry) => entry.gap);
     const delays = state.inputDelays
       .filter((entry) => inRange(entry.at))
       .map((entry) => entry.delay);
@@ -118,7 +122,6 @@ async function measureOnce(file) {
     return {
       parseMs: end - start,
       rows: Number(document.documentElement.dataset.uploadReady),
-      maxTimerDelayMs: Math.max(0, ...gaps),
       inputSamples: delays.length,
       maxInputDelayMs: Math.max(0, ...delays),
       longTaskCount: tasks.length,
@@ -146,7 +149,14 @@ try {
       Math.round(median(runs.map((run) => run[key])) * 10) / 10,
     ]),
   );
-  console.log(JSON.stringify({ runs: RUNS, median: summary }, null, 2));
+  console.log(
+    JSON.stringify({
+      runs: RUNS,
+      rows: ROWS,
+      cpu: CPU_THROTTLE,
+      median: summary,
+    }),
+  );
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

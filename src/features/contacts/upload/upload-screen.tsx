@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { checkUploadPhones, saveUploadBatch } from "./actions";
-import { readUpload } from "./read-upload";
+import { readUpload, UploadCanceledError } from "./read-upload";
 import {
   applyServerCheck,
   classifyRow,
@@ -78,7 +78,11 @@ function SummaryCard({
   emphasis?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-border bg-surface p-4">
+    <div
+      role="group"
+      aria-label={label}
+      className="flex flex-col gap-1 rounded-lg border border-border bg-surface p-4"
+    >
       <span className="text-caption text-text-muted">{label}</span>
       <span
         className={
@@ -102,6 +106,7 @@ export function UploadScreen({
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const parseAbort = useRef<AbortController | null>(null);
 
   const summary = useMemo(() => summarize(rows), [rows]);
   const problems = useMemo(
@@ -194,7 +199,18 @@ export function UploadScreen({
 
     setPhase({ name: "parsing", fileName: file.name });
     performance.mark("upload:parse-start");
-    const parsed = await readUpload(file);
+    const abort = new AbortController();
+    parseAbort.current = abort;
+    let parsed;
+    try {
+      parsed = await readUpload(file, abort.signal);
+    } catch (error) {
+      if (error instanceof UploadCanceledError) {
+        reset();
+        return;
+      }
+      throw error;
+    }
     performance.mark("upload:parse-end");
     if (!parsed.ok) {
       setPhase({ name: "idle", error: parsed.error });
@@ -264,6 +280,7 @@ export function UploadScreen({
     setRows([]);
     setGroupId("");
     setPhase({ name: "idle" });
+    // 같은 파일을 다시 골라도 변경 이벤트가 나도록 비운다. 입력 요소가 화면에 다시 생기는 동안은 없을 수 있다.
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -353,6 +370,14 @@ export function UploadScreen({
           {phase.fileName}
           {progress && ` · ${progress}`}
         </p>
+        {phase.name === "parsing" && (
+          <Button
+            variant="secondary"
+            onClick={() => parseAbort.current?.abort()}
+          >
+            읽기 취소
+          </Button>
+        )}
       </section>
     );
   }
