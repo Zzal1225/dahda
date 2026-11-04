@@ -1,6 +1,7 @@
 {
   "imports": {
     "zod": "npm:zod@4",
+    "solapi": "npm:solapi@6.0.1",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2"
   }
 }
