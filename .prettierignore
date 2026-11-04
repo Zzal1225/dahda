@@ -10,3 +10,6 @@ private
 
 # supabase gen types가 만드는 파일. 손으로 고치지 않는다
 src/server/db/database.types.ts
+
+# supabase link가 만드는 로컬 임시 파일
+supabase/.temp
