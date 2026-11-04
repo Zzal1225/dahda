@@ -248,6 +248,12 @@ export function ContactsScreen({
         )}
         {canEdit && (
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Link
+              href="/contacts/upload"
+              className="inline-flex h-(--control-h) items-center rounded-md border border-border-strong bg-surface px-4 text-body-sm font-bold outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus"
+            >
+              엑셀 업로드
+            </Link>
             <GroupDialog
               trigger={(open) => (
                 <Button variant="secondary" onClick={open}>
