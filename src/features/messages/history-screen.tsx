@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cancelCampaign } from "@/features/campaigns/approval-actions";
@@ -10,10 +11,16 @@ import { CampaignTable } from "@/features/campaigns/campaign-table";
 import {
   campaignTitle,
   canCancelCampaign,
+  fallbackPollMs,
   messageCounts,
   type CampaignRow,
 } from "@/features/campaigns/campaign-view";
-import { formatKstDateTime, periodToRange } from "@/lib/kst";
+import {
+  useLiveCampaigns,
+  type LiveChange,
+} from "@/features/campaigns/use-live-campaigns";
+import { formatKstDateTime, formatKstTime, periodToRange } from "@/lib/kst";
+import { createThrottle } from "@/lib/throttle";
 import type { MemberRole } from "@/server/auth/to-current-member";
 import { HistoryFilters, type BranchOption } from "./history-filters";
 import { RecipientTable } from "./recipient-table";
@@ -27,6 +34,9 @@ async function fetchCampaigns(
   if (!response.ok) throw new Error(`발송 건 조회 실패: ${response.status}`);
   return (await response.json()) as CampaignRow[];
 }
+
+const CAMPAIGN_REFRESH_MS = 1000;
+const MESSAGE_REFRESH_MS = 2000;
 
 function TableSkeleton({ rows }: { rows: number }) {
   return (
@@ -42,6 +52,7 @@ export function HistoryScreen({
   scope,
   role,
   accountBranchId,
+  liveFilter,
   branches,
 }: {
   /** 사용자·역할·지점. 캐시 키의 앞부분이다. */
@@ -49,6 +60,8 @@ export function HistoryScreen({
   role: MemberRole;
   /** 내 잔액 계정. null이면 본사 계정이다. 취소 권한 판단에 쓴다. */
   accountBranchId: string | null;
+  /** 구독 범위. 본사는 본사 전체, 지점은 자기 지점이다. */
+  liveFilter: string;
   branches: readonly BranchOption[];
 }) {
   const state = useTableState();
@@ -62,6 +75,49 @@ export function HistoryScreen({
     () => periodToRange(filters.period, filters.from, filters.to, now),
     [filters.period, filters.from, filters.to, now],
   );
+
+  const router = useRouter();
+  // 웹훅은 몰려서 온다. 변경마다 다시 읽으면 1만 건 발송에 1만 번 조회하므로 간격을 둔다.
+  // 표는 페이지 크기가 크고 수신자 수도 많아 발송 건 목록보다 넓게 둔다.
+  const throttles = useMemo(
+    () => ({
+      campaigns: createThrottle(() => {
+        void queryClient.invalidateQueries({ queryKey: ["campaigns", scope] });
+      }, CAMPAIGN_REFRESH_MS),
+      messages: createThrottle(() => {
+        void queryClient.invalidateQueries({
+          // 화면에 있는 표만 다시 읽힌다. 나머지 발송 건은 다시 열 때 읽는다.
+          queryKey: ["messages", scope],
+          // 전체 건수는 발송 중에 변하지 않는다. 10만 행을 세는 비싼 쿼리를 건너뛴다.
+          // 상태 필터가 있으면 건수가 변하지만, 완료 때 아래에서 맞춘다.
+          predicate: (query) => query.queryKey.at(-1) !== "total",
+        });
+      }, MESSAGE_REFRESH_MS),
+    }),
+    [queryClient, scope],
+  );
+  useEffect(
+    () => () => {
+      throttles.campaigns.cancel();
+      throttles.messages.cancel();
+    },
+    [throttles],
+  );
+
+  function handleLiveChange(change: LiveChange) {
+    throttles.campaigns.call();
+    if (change === null || change.id === selectedId) {
+      throttles.messages.call();
+    }
+    if (change?.status === "completed") {
+      // 실패분 환불이 상단 잔액에 보이게 한다. 잔액은 레이아웃이 서버에서 그린다.
+      router.refresh();
+      void queryClient.invalidateQueries({
+        queryKey: ["messages", scope, change.id],
+      });
+    }
+  }
+  const liveStatus = useLiveCampaigns(liveFilter, handleLiveChange);
 
   const campaignsQuery = useQuery({
     queryKey: [
@@ -81,6 +137,8 @@ export function HistoryScreen({
       if (filters.branch) params.set("branch", filters.branch);
       return fetchCampaigns(params, signal);
     },
+    // 구독이 끊긴 동안만 폴링한다. 안 하면 끊긴 사실을 모른 채 화면이 멈춘다.
+    refetchInterval: (query) => fallbackPollMs(liveStatus, query.state.data),
   });
 
   const campaigns = campaignsQuery.data;
@@ -179,7 +237,22 @@ export function HistoryScreen({
                 {selected.isAd ? " · 광고" : ""} ·{" "}
                 {selected.recipientCount.toLocaleString("ko-KR")}명
               </span>
+              {selected.failedCount > 0 && state.selectedIds.size === 0 && (
+                <span className="text-caption text-text-muted">
+                  아래 표에서 실패한 행을 선택하면 다시 보낼 수 있어요
+                </span>
+              )}
             </div>
+            {selected.status === "sending" && (
+              <span className="flex flex-none items-center gap-1.5 text-caption text-text-muted">
+                <span
+                  aria-hidden
+                  className="live-dot size-2 rounded-full bg-status-sent"
+                />
+                {liveStatus === "live" ? "실시간 갱신 중" : "10초마다 확인 중"}{" "}
+                {formatKstTime(new Date(campaignsQuery.dataUpdatedAt))}
+              </span>
+            )}
             {selected.status === "completed" && (
               <span className="flex-none text-caption text-text-muted">
                 결과 확정 · 더 이상 바뀌지 않아요

@@ -4,6 +4,7 @@ import {
   campaignStatusView,
   campaignTitle,
   canCancelCampaign,
+  fallbackPollMs,
   messageCounts,
   type CampaignRow,
 } from "./campaign-view";
@@ -27,6 +28,7 @@ const base: CampaignRow = {
   scheduledAt: null,
   reviewedAt: null,
   rejectedReason: null,
+  retryOfCampaignId: null,
 };
 
 describe("campaignTitle", () => {
@@ -156,5 +158,23 @@ describe("canCancelCampaign", () => {
     expect(canCancelCampaign({ ...scheduled, branchId: null }, null, NOW)).toBe(
       true,
     );
+  });
+});
+
+describe("fallbackPollMs", () => {
+  it.each([
+    ["연결됨", "live", ["sending"], false],
+    ["연결 중", "connecting", ["sending"], 10_000],
+    ["끊김 + 발송 중", "offline", ["sending"], 10_000],
+    ["끊김 + 예약", "offline", ["scheduled"], 10_000],
+    ["끊김 + 끝난 건만", "offline", ["completed", "canceled"], false],
+    ["끊김 + 데이터 없음", "offline", undefined, false],
+  ] as const)("%s", (_, live, statuses, expected) => {
+    expect(
+      fallbackPollMs(
+        live,
+        statuses?.map((status) => ({ status })),
+      ),
+    ).toBe(expected);
   });
 });

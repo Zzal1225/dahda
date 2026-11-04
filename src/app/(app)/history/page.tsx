@@ -29,6 +29,11 @@ async function History() {
         scope={`${member.userId}:${member.branchId ?? member.role}`}
         role={member.role}
         accountBranchId={member.branchId}
+        liveFilter={
+          member.branchId
+            ? `branch_id=eq.${member.branchId}`
+            : `org_id=eq.${member.orgId}`
+        }
         branches={branches}
       />
     </NuqsAdapter>

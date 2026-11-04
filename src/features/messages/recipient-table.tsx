@@ -23,6 +23,7 @@ import {
   pageOfIndex,
   pagesForRange,
 } from "./message-view";
+import { RetryBar } from "./retry-bar";
 import { PAGE_SIZES, type SortColumn, type TableState } from "./table-state";
 
 const ROW_HEIGHT = 36;
@@ -557,6 +558,7 @@ export function RecipientTable({
           <span className="text-body-sm font-bold">
             {selectedIds.size.toLocaleString("ko-KR")}건 선택
           </span>
+          <RetryBar scope={scope} campaignId={campaignId} state={state} />
           <Button variant="ghost" onClick={state.clearSelection}>
             선택 해제
           </Button>

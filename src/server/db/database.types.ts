@@ -392,11 +392,19 @@ isOneToOne: false
 "delete_expired_trials":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"preview_retry":
+{ Args: { "p_hopeless_codes": (string)[],"p_message_ids": (number)[],"p_org_id": string,"p_source_id": string }; Returns: {
+              "balance": number,"failed_count": number,"hopeless_count": number,"kind": Database["public"]['Enums']["campaign_kind"],"target_count": number,"unit_price": number
+            }[]
+                           },
 "reject_campaign":
 { Args: { "p_campaign_id": string,"p_org_id": string,"p_reason": string,"p_reviewer": string }; Returns: undefined
                            },
 "reserve_balance":
 { Args: { "p_amount": number,"p_branch_id": string,"p_campaign_id": string,"p_idempotency_key": string,"p_org_id": string }; Returns: number
+                           },
+"retry_failed_messages":
+{ Args: { "p_created_by": string,"p_message_ids": (number)[],"p_org_id": string,"p_source_id": string }; Returns: string
                            },
 "submit_campaign":
 { Args: { "p_body": string,"p_branch_id": string,"p_client_request_id": string,"p_created_by": string,"p_is_ad": boolean,"p_kind": Database["public"]['Enums']["campaign_kind"],"p_org_id": string,"p_recipients": Json,"p_scheduled_at": string,"p_sender_phone": unknown,"p_status": Database["public"]['Enums']["campaign_status"],"p_unit_price": number }; Returns: string

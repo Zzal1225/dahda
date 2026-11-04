@@ -18,7 +18,7 @@ export function ProgressBar({
     >
       {counts.delivered > 0 && (
         <div
-          className="bg-status-delivered"
+          className="bg-status-delivered transition-[width] duration-800"
           style={{ width: `${percent(counts.delivered)}%` }}
         />
       )}
