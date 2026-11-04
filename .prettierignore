@@ -7,3 +7,6 @@ design
 private
 # 표·한글 문서는 사람이 다듬는 글이라 자동 정렬 대상에서 뺀다.
 *.md
+
+# supabase gen types가 만드는 파일. 손으로 고치지 않는다
+src/server/db/database.types.ts

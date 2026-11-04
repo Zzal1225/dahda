@@ -70,6 +70,8 @@ src/
     providers/         SmsProvider 인터페이스, solapi/, fake/
     queue/             워커 로직(Edge Function에서 호출), 재시도 규칙
     auth/              requireRole.ts(사용자 작성), RLS 보조
+  server/db/           database.types.ts (supabase gen types 생성, 손으로 고치지 않음)
+  test/integration/    RLS·제약·잔액 통합 테스트 (npm run test:integration, 로컬 Supabase 필요)
   components/ui/       shadcn/ui 복사본 + 토큰
 supabase/
   migrations/          테이블·RLS·함수(잔액 선점)·pg_cron. 상태·돈 테이블 쓰기는 service_role만 (사용자는 읽기만)
