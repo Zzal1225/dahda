@@ -67,6 +67,7 @@ jobs:
               `NEXT_PUBLIC_SUPABASE_URL=${s.API_URL}`,
               `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${s.PUBLISHABLE_KEY}`,
               `SUPABASE_SECRET_KEY=${s.SECRET_KEY}`,
+              `FAKE_WEBHOOK_SECRET=ci-fake-webhook-secret`,
             ].join("\n"));
           '
       - run: npx playwright install --with-deps chromium

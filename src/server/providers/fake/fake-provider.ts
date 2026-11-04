@@ -5,7 +5,7 @@ import type {
   SmsProvider,
   WebhookEvent,
   WebhookRequest,
-} from "../sms-provider";
+} from "../sms-provider.ts";
 
 /**
  * 체험 계정·CI·테스트가 쓰는 가짜 발송기. 실제 문자는 나가지 않는다.
@@ -107,7 +107,7 @@ export function createFakeProvider(options: FakeProviderOptions): SmsProvider {
               occurredAt,
             };
 
-      void signRequest(options.secret, JSON.stringify({ events: [event] }))
+      void signFakeWebhook(options.secret, JSON.stringify({ events: [event] }))
         .then(options.deliver)
         .catch(options.onDeliveryError);
     }, delayMs);
@@ -157,7 +157,8 @@ export function createFakeProvider(options: FakeProviderOptions): SmsProvider {
   };
 }
 
-async function signRequest(
+/** 테스트도 실제와 같은 서명을 쓰도록 내보낸다. */
+export async function signFakeWebhook(
   secret: string,
   rawBody: string,
 ): Promise<WebhookRequest> {

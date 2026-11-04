@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { kstDayTimeToUtc, kstHour } from "@/lib/kst";
+import { kstDayTimeToUtc } from "@/lib/kst";
+import { isNightKst } from "./ad-hours";
+
+export { isNightKst };
 
 /**
  * 발송 폼의 규칙. 근거와 출처는 docs/decisions/2026-11-04-광고-문자-규칙과-바이트-기준.md에 있다.
@@ -11,9 +14,6 @@ export const SMS_MAX_BYTES = 90;
 export const LMS_MAX_BYTES = 2_000;
 export const UNIT_PRICE = { sms: 20, lms: 50 } as const;
 export const MAX_SCHEDULE_DAYS = 7;
-
-const NIGHT_START_HOUR = 21;
-const NIGHT_END_HOUR = 8;
 
 export type MessageKind = "sms" | "lms";
 
@@ -53,15 +53,6 @@ export function composeBody(
   parts: AdParts,
 ): string {
   return isAd ? `${parts.prefix}\n${body}\n${parts.suffix}` : body;
-}
-
-/**
- * 법 제50조 제3항: 21시~다음 날 8시. 별도 야간 동의를 관리하지 않으므로 광고는 이 시간에 막는다.
- * 확인 필요: 위반 여부는 수신 시각 기준이다. 20시대 대량 발송의 도착 시각은 측정 3 이후 판단한다.
- */
-export function isNightKst(date: Date): boolean {
-  const hour = kstHour(date);
-  return hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
 }
 
 export type CampaignContext = AdParts & {
