@@ -13,7 +13,7 @@ export default defineConfig({
     // 측정해서 느려지면 그때 순수 로직만 node 환경으로 나눈다.
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "supabase/seed/**/*.test.ts"],
     // RLS 통합 테스트는 실제 DB가 필요해 별도 설정으로 돌린다(1-2). 단위 테스트는 항상 DB 없이 돌아야 한다.
     exclude: ["src/**/*.integration.test.{ts,tsx}"],
   },
