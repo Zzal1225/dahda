@@ -12,6 +12,8 @@ describe("messageQuerySchema", () => {
       offset: 0,
       limit: 100,
       withTotal: false,
+      sort: "sent_at",
+      desc: true,
     });
   });
 
@@ -31,6 +33,7 @@ describe("messageQuerySchema", () => {
     { name: "응답 상한 초과", input: { campaignId, limit: 1001 } },
     { name: "없는 상태", input: { campaignId, status: ["hacked"] } },
     { name: "숫자가 아닌 검색어", input: { campaignId, q: "010%" } },
+    { name: "없는 정렬 열", input: { campaignId, sort: "password" } },
     { name: "너무 긴 검색어", input: { campaignId, q: "1".repeat(16) } },
   ])("$name을 거부한다", ({ input }) => {
     expect(messageQuerySchema.safeParse(input).success).toBe(false);

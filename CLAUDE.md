@@ -2,7 +2,7 @@
 
 이 파일은 Claude Code가 이 저장소에서 작업할 때 따르는 규칙이다.
 이 프로젝트는 **두 번째 포트폴리오**다. nanaki(첫 프로젝트)와 같은 방식으로 Claude가 구현하고 사용자는 "왜" 주석과
-`private/learning/`으로 공부하되, **핵심 파일 2개는 사용자가 직접 짠다**(5-1 참고). 상세 기획은 `docs/기획서.md`를 따른다.
+`private/learning/`으로 공부하되, **핵심 파일 1개(`campaignSchema`)는 사용자가 직접 짠다**(5-1 참고). 상세 기획은 `docs/기획서.md`를 따른다.
 
 ---
 
@@ -64,7 +64,7 @@ src/
     org/               본사·지점·구성원
     contacts/          주소록·그룹·수신거부·엑셀 업로드(worker/)
     campaigns/         발송 건 작성·승인·내역, status.ts(상태 전이), campaignSchema.ts(사용자 작성)
-    messages/          수신자별 메시지 표(10만 행), useTableState.ts(사용자 작성)
+    messages/          수신자별 메시지 표(10만 행), useTableState.ts(사용자 요청으로 Claude 작성)
     billing/           충전·거래 기록·토스 연동 화면
   server/
     providers/         SmsProvider 인터페이스, solapi/, fake/
@@ -74,7 +74,7 @@ src/
   server/db/           database.types.ts (supabase gen types 생성, 손으로 고치지 않음)
   test/integration/    RLS·제약·잔액 통합 테스트 (npm run test:integration, 로컬 Supabase 필요)
   components/shell/    사이드바·상단 바·역할 전환, nav-items.ts(메뉴와 역할)
-  components/ui/       shadcn/ui 복사본 + 토큰
+  components/ui/       shadcn/ui 복사본 + 토큰, 공통 표 data-table.tsx
   proxy.ts             토큰 갱신, 세션 없는 요청 이동만 (권한 판단 금지)
 e2e/                   Playwright (npm run test:e2e, 로컬 Supabase 필요)
 supabase/
@@ -110,12 +110,11 @@ private/               learning/, interview-questions.md, decisions 초안 (giti
 ## 5. 워크플로우
 
 ### 5-1. 구현 방식 (기본값, 가장 중요)
-Claude가 기능을 직접 구현한다. 단, 아래 2개 파일은 **사용자가 직접 작성**한다. Claude는 설계 설명, 입력·출력 정의, 힌트, 코드 리뷰, 테스트 작성만 한다.
+Claude가 기능을 직접 구현한다. 단, 아래 파일은 **사용자가 직접 작성**한다. Claude는 설계 설명, 입력·출력 정의, 힌트, 코드 리뷰, 테스트 작성만 한다.
 사용자가 요청하지 않는 한 이 파일의 본문을 써 주지 않는다.
-1. `features/messages/useTableState.ts` — 필터·정렬·페이지·선택과 URL 동기화
-2. `features/campaigns/campaignSchema.ts` — 발송 폼 Zod 스키마(바이트·광고 규칙·예약 시각)
+1. `features/campaigns/campaignSchema.ts` — 발송 폼 Zod 스키마(바이트·광고 규칙·예약 시각)
 
-`server/auth/requireRole.ts`는 처음에 직접 작성 대상이었으나 2026-11-04 사용자 요청으로 Claude가 작성했다.
+`server/auth/requireRole.ts`와 `features/messages/useTableState.ts`는 처음에 직접 작성 대상이었으나 2026-11-04 사용자 요청으로 Claude가 작성했다.
 
 나머지 절차는 nanaki와 같다.
 1. **시작 전 합의**: 입력·출력·파일 위치를 3~5줄로 정리하고, 사용자가 정해야 하는 결정만 추천안과 함께 묻는다.

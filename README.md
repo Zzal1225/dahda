@@ -73,17 +73,18 @@ docs/             기획서와 설계 결정 기록
 | 단계 | 내용 | 상태 |
 | --- | --- | --- |
 | step1 | 데이터 모델·RLS, 상태 전이, 가짜 발송기, 로그인·체험·역할 전환, 권한 가드, 지점 관리, 10만 행 시드, CI, 배포 | [완료](docs/milestones.md) |
-| step2 | 발송 내역 표(10만 행 가상화, URL 필터) | 예정 |
+| step2 | 발송 내역 표(10만 행 가상화, URL 필터, 행 선택) | 완료 |
 | step3 | 주소록·엑셀 업로드, 문자 작성, 광고 규칙, 승인함 | 예정 |
 | step4 | 발송 큐·재시도, 실제 문자 업체, 결과 웹훅, 토스 테스트 결제 | 예정 |
 | step5 | 첫 화면, E2E 확대, 성능 측정 정리 | 예정 |
 
-지금 동작하는 것은 로그인, 체험 계정, 역할 전환, 앱 틀, 지점 관리입니다. 문자 작성과 실제 발송은 아직 없습니다.
+지금 동작하는 것은 로그인, 체험 계정, 역할 전환, 앱 틀, 지점 관리, 발송 내역 조회입니다. 문자 작성과 실제 발송은 아직 없습니다.
 
 ## 기술 스택
 
 | 영역 | 사용 |
 | --- | --- |
+| 표·URL 상태 | TanStack Table, TanStack Virtual, TanStack Query, nuqs |
 | 프레임워크 | Next.js 16 (App Router, Cache Components), React 19, TypeScript (strict) |
 | 백엔드 | Supabase: Postgres + RLS, Auth, pg_cron |
 | 화면 | Tailwind CSS v4, Radix UI, lucide-react |
@@ -92,6 +93,19 @@ docs/             기획서와 설계 결정 기록
 | CI·배포 | GitHub Actions, Vercel, Supabase |
 
 표·서버 상태·엑셀·결제 등 이후 단계에서 쓸 라이브러리는 [기획서](docs/기획서.md#기술-스택)에 이유와 함께 정리했습니다.
+
+## 측정
+
+10만 행 표를 일부러 전부 렌더한 뒤, 가상화와 서버 페이지로 바꾸고 같은 조건에서 비교했습니다. 같은 PC의 헤드리스 브라우저에서 잰 값이라 실제 사용자 수치가 아니라 전후 비교용입니다. 조건과 재현 방법은 [측정 기록](docs/performance.md)에 있습니다.
+
+| 지표 | 전부 렌더 | 가상화 + 서버 페이지 |
+| --- | --- | --- |
+| 접속부터 표시까지 | 12,391ms | 679ms |
+| DOM 노드 | 800,086개 | 580개 |
+| 메모리(JS 힙) | 179MB | 15MB |
+| 스크롤 프레임 | 6fps | 60fps |
+
+대신 빠르게 스크롤하면 자리 표시가 보이고, 멈춘 뒤 약 0.2초 뒤에 행이 나타납니다.
 
 ## 테스트
 
@@ -123,9 +137,8 @@ npm run dev                 # http://127.0.0.1:3000
 
 ## AI 활용
 
-설계 결정과 검증은 직접 하고, 구현은 [Claude Code](https://claude.com/claude-code)와 함께 합니다. 아래 핵심 파일 2개는 직접 작성합니다. 이 프로젝트의 커밋에는 공동 작성자 표시가 남아 있습니다.
+설계 결정과 검증은 직접 하고, 구현은 [Claude Code](https://claude.com/claude-code)와 함께 합니다. 아래 핵심 파일은 직접 작성합니다. 이 프로젝트의 커밋에는 공동 작성자 표시가 남아 있습니다.
 
 | 파일 | 역할 | 상태 |
 | --- | --- | --- |
-| `src/features/messages/useTableState.ts` | 표 상태와 URL 동기화 | 작성 예정 |
 | `src/features/campaigns/campaignSchema.ts` | 발송 폼 검증 | 작성 예정 |

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildSmallCampaigns,
   LARGE_MESSAGE_COUNT,
   seedCounts,
   seedMessage,
@@ -60,5 +61,40 @@ describe("seedMessage", () => {
     expect(message.provider_message_id).toBeTruthy();
     expect(message.fail_code !== null).toBe(status === "failed");
     expect(message.finalized_at !== null).toBe(status !== "sent");
+  });
+});
+
+describe("buildSmallCampaigns", () => {
+  const campaigns = buildSmallCampaigns(["b1", "b2", "b3"]);
+
+  it("메시지에 queued가 없다", () => {
+    const statuses = campaigns.flatMap((c) => c.messages.map((m) => m.status));
+    expect(statuses).not.toContain("queued");
+    expect(statuses.length).toBeGreaterThan(0);
+  });
+
+  it("완료된 건에는 확인 중인 메시지가 없고 집계가 수신자 수와 같다", () => {
+    for (const campaign of campaigns.filter((c) => c.status === "completed")) {
+      expect(campaign.messages.map((m) => m.status)).not.toContain("sent");
+      expect(campaign.delivered_count + campaign.failed_count).toBe(
+        campaign.recipient_count,
+      );
+    }
+  });
+
+  it("보내기 전인 건에는 메시지가 없다", () => {
+    for (const campaign of campaigns.filter(
+      (c) => c.status !== "completed" && c.status !== "sending",
+    )) {
+      expect(campaign.messages).toEqual([]);
+    }
+  });
+
+  it("반려에만 사유가 있다", () => {
+    for (const campaign of campaigns) {
+      expect(campaign.rejected_reason !== null).toBe(
+        campaign.status === "rejected",
+      );
+    }
   });
 });

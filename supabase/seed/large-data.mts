@@ -72,3 +72,63 @@ export function seedCounts(total: number) {
   }
   return counts;
 }
+
+const SMALL_RECIPIENTS = 60;
+const SMALL_STATUSES = [
+  "completed",
+  "completed",
+  "completed",
+  "sending",
+  "scheduled",
+  "pending_approval",
+  "rejected",
+  "canceled",
+] as const;
+
+/**
+ * 목록 화면용 발송 건. 예약·승인 대기처럼 보내기 전인 건은 메시지를 만들지 않는다.
+ * 메시지가 있어도 queued를 만들지 않는 규칙은 큰 발송 건과 같다.
+ * 잔액 기록은 만들지 않는다. 목록 표시용이고 측정 대상 계정의 잔액을 흔들지 않으려는 것이다.
+ */
+export function buildSmallCampaigns(branchIds: readonly string[]) {
+  return SMALL_STATUSES.map((status, position) => {
+    const id = `5eed0000-0000-4000-8000-${String(100 + position).padStart(12, "0")}`;
+    const sent = status === "completed" || status === "sending";
+    const messages = sent
+      ? Array.from({ length: SMALL_RECIPIENTS }, (_, index) => {
+          const message = seedMessage(index);
+          const finalize = status === "completed" && message.status === "sent";
+          return {
+            ...message,
+            provider_message_id: `seed-small-${position}-${index}`,
+            // 완료된 건에는 확인 중인 행이 남아 있을 수 없다.
+            status: finalize ? ("delivered" as const) : message.status,
+            finalized_at: finalize ? message.sent_at : message.finalized_at,
+          };
+        })
+      : [];
+    const delivered = messages.filter((m) => m.status === "delivered").length;
+    const failed = messages.filter((m) => m.status === "failed").length;
+
+    return {
+      id,
+      // 마지막 두 건은 본사 발송이다(branch_id null).
+      branch_id:
+        position >= 6 ? null : (branchIds[position % branchIds.length] ?? null),
+      body: `측정용 발송 건 ${position + 1}: 이번 주 행사 안내입니다`,
+      kind: "sms" as const,
+      is_ad: position % 2 === 0,
+      status,
+      rejected_reason: status === "rejected" ? "문구 수정이 필요해요" : null,
+      recipient_count: SMALL_RECIPIENTS,
+      estimated_cost: SMALL_RECIPIENTS * UNIT_PRICE,
+      sent_count: messages.length,
+      delivered_count: delivered,
+      failed_count: failed,
+      started_at: sent
+        ? new Date(BASE_TIME_MS + position * 3_600_000).toISOString()
+        : null,
+      messages,
+    };
+  });
+}

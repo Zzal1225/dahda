@@ -23,6 +23,8 @@ export const messageQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
   limit: z.coerce.number().int().min(1).max(1000).default(100),
   withTotal: z.coerce.boolean().default(false),
+  sort: z.enum(["sent_at", "finalized_at"]).default("sent_at"),
+  desc: z.boolean().default(true),
 });
 export type MessageQuery = z.infer<typeof messageQuerySchema>;
 
@@ -42,7 +44,7 @@ export type MessagePage = { rows: MessageRow[]; total: number | null };
 /**
  * 클라이언트를 인자로 받는다. 호출자가 사용자 권한 클라이언트를 넘겨 RLS가 범위를 정하게 한다.
  * 정렬에 id를 함께 쓰는 이유: 같은 시각의 행은 순서가 정해지지 않아 페이지를 넘길 때 행이 겹치거나 빠질 수 있다.
- * 표 전용 인덱스는 변경 전 수치를 잰 뒤 추가한다(CLAUDE.md 5-2).
+ * 아직 시각이 없는 행은 항상 뒤로 보낸다. 정렬 인덱스는 측정 결과 필요하지 않아 두지 않았다(docs/performance.md).
  */
 export async function listMessages(
   supabase: SupabaseClient<Database>,
@@ -62,6 +64,7 @@ export async function listMessages(
   if (query.q) request = request.like("phone", `${query.q}%`);
 
   const { data, error, count } = await request
+    .order(query.sort, { ascending: !query.desc, nullsFirst: false })
     .order("id")
     .range(query.offset, query.offset + query.limit - 1);
 

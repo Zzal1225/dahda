@@ -9,6 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/server/db/database.types.ts";
 import {
   LARGE_MESSAGE_COUNT,
+  buildSmallCampaigns,
   seedCounts,
   seedMessage,
   UNIT_PRICE,
@@ -187,6 +188,35 @@ await must(
     p_idempotency_key: `reserve:${CAMPAIGN_ID}`,
   }),
 );
+
+// 발송 건 목록을 측정·확인할 수 있게 상태와 지점이 다른 작은 발송 건을 함께 만든다.
+const smallCampaigns = buildSmallCampaigns([
+  BRANCH_IDS.seongsu,
+  BRANCH_IDS.mangwon,
+  BRANCH_IDS.hapjeong,
+]);
+for (const { messages, ...campaign } of smallCampaigns) {
+  await must(
+    "작은 발송 건",
+    db.from("campaigns").insert({
+      ...campaign,
+      org_id: ORG_ID,
+      sender_phone: "01000000002",
+      unit_price: UNIT_PRICE,
+    }),
+  );
+  if (messages.length === 0) continue;
+  await must(
+    "작은 발송 건 메시지",
+    db.from("messages").insert(
+      messages.map((message) => ({
+        ...message,
+        campaign_id: campaign.id,
+        org_id: ORG_ID,
+      })),
+    ),
+  );
+}
 
 const insertStartedAt = performance.now();
 for (let start = 0; start < LARGE_MESSAGE_COUNT; start += BATCH_SIZE) {

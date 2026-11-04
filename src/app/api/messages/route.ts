@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
     offset: params.get("offset") ?? undefined,
     limit: params.get("limit") ?? undefined,
     withTotal: params.get("withTotal") === "1",
+    sort: params.get("sort") ?? undefined,
+    desc: params.get("desc") !== "0",
   });
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_query" }, { status: 400 });

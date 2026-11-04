@@ -63,7 +63,7 @@ async function measureOnce() {
       fetchEnd: at("table:fetch-end"),
       painted: at("table:painted"),
       rowCount: Number(document.documentElement.dataset.tableReady),
-      domRows: document.querySelectorAll("tbody tr, [data-row]").length,
+      domRows: document.querySelectorAll("[data-row]").length,
       domNodes: document.getElementsByTagName("*").length,
       longTaskCount: window.__longTasks.length,
       longTaskTotalMs: sum(window.__longTasks),
@@ -106,6 +106,30 @@ async function measureOnce() {
     SCROLL_MS,
   );
 
+  // 가상 표는 빠른 스크롤 중 자리 표시만 그리므로 프레임 수만으로는 공정하지 않다.
+  // 멈춘 뒤 맨 아래 위치에서 실제 행이 보일 때까지 걸린 시간을 함께 잰다.
+  const settleMs = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const start = performance.now();
+        const scroller =
+          document.querySelector("[data-table-scroller]") ??
+          document.scrollingElement;
+        function check() {
+          const box = scroller.getBoundingClientRect();
+          const visible = [...document.querySelectorAll("[data-row]")].some(
+            (row) => {
+              const rect = row.getBoundingClientRect();
+              return rect.bottom > box.top + 40 && rect.top < box.bottom;
+            },
+          );
+          if (visible) resolve(performance.now() - start);
+          else requestAnimationFrame(check);
+        }
+        check();
+      }),
+  );
+
   await browser.close();
   return {
     wallMs,
@@ -121,6 +145,7 @@ async function measureOnce() {
     fps: scroll.fps,
     worstFrameMs: scroll.worstFrameMs,
     framesOver50ms: scroll.over50ms,
+    settleMs,
   };
 }
 
