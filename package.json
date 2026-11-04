@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:e2e": "playwright test",
+    "db:seed:large": "node --env-file=.env.local supabase/seed/large.mts",
     "db:types": "supabase gen types typescript --local > src/server/db/database.types.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

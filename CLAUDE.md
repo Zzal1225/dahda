@@ -80,7 +80,7 @@ e2e/                   Playwright (npm run test:e2e, 로컬 Supabase 필요)
 supabase/
   migrations/          테이블·RLS·함수(잔액 선점)·pg_cron. 상태·돈 테이블 쓰기는 service_role만 (사용자는 읽기만)
   functions/           Edge Function (send-worker)
-  seed/                체험 샘플, 10만 행 시드 스크립트
+  seed/                10만 행 시드 (npm run db:seed:large, db reset 후 다시 실행). 체험 샘플은 create_trial_org
 docs/                  기획서.md, performance.md, decisions/, troubleshooting/, assets/
 design/                디자인 핸드오프 원본 (gitignore, 로컬 전용)
 private/               learning/, interview-questions.md, decisions 초안 (gitignore)
