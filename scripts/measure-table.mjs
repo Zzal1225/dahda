@@ -15,7 +15,10 @@ const median = (values) =>
   [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
 async function measureOnce() {
-  const browser = await chromium.launch();
+  // 옵션이 없으면 힙 크기가 뭉뚱그린 값으로 나온다.
+  const browser = await chromium.launch({
+    args: ["--enable-precise-memory-info"],
+  });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
     locale: "ko-KR",
@@ -47,6 +50,9 @@ async function measureOnce() {
     { timeout: 600_000, polling: 200 },
   );
   const wallMs = Date.now() - started;
+
+  // Long Task는 태스크가 끝난 뒤 비동기로 전달되므로 잠시 기다린 뒤 읽는다.
+  await page.waitForTimeout(1000);
 
   const marks = await page.evaluate(() => {
     const at = (name) =>

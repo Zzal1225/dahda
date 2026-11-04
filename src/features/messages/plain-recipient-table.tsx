@@ -46,10 +46,12 @@ export function PlainRecipientTable({ campaignId }: { campaignId: string }) {
 
   useEffect(() => {
     if (!rows) return;
-    // 커밋 직후 다음 프레임이 곧 사용자가 표를 보는 시점이다.
+    // rAF 콜백은 그 프레임의 레이아웃·페인트보다 먼저 돈다. 다음 태스크까지 기다려야 실제로 그려진 뒤다.
     requestAnimationFrame(() => {
-      performance.mark("table:painted");
-      document.documentElement.dataset.tableReady = String(rows.length);
+      setTimeout(() => {
+        performance.mark("table:painted");
+        document.documentElement.dataset.tableReady = String(rows.length);
+      }, 0);
     });
   }, [rows]);
 
