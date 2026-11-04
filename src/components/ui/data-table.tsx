@@ -147,9 +147,12 @@ export function DataTable<TData extends RowData>({
         aria-rowcount={rows.length + 1}
         className="overflow-x-auto"
       >
-        {header}
-        <div role="rowgroup">
-          {rows.map((row, index) => renderRow(row, index, undefined))}
+        {/* 좁은 화면에서 열이 찌그러지지 않게 내용 폭을 유지하고 가로로 스크롤한다. */}
+        <div className="w-full min-w-fit">
+          {header}
+          <div role="rowgroup">
+            {rows.map((row, index) => renderRow(row, index, undefined))}
+          </div>
         </div>
       </div>
     );
