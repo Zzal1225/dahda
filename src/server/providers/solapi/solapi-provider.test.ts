@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { SendRequest, WebhookRequest } from "../sms-provider";
 import {
   createSolapiProvider,
-  SolapiBadRequest,
+  SolapiRejected,
   type SolapiClient,
   type SolapiMessage,
 } from "./solapi-provider";
@@ -102,12 +102,12 @@ describe("send", () => {
     });
   });
 
-  it("잘못된 요청은 재시도하지 않는다", async () => {
+  it("다시 보내도 같은 오류는 재시도하지 않고 사유를 남긴다", async () => {
     const [result] = await provider(async () => {
-      throw new SolapiBadRequest("bad");
+      throw new SolapiRejected("SOLAPI_InvalidApiKey", "bad");
     }).send([request("a")]);
     expect(result).toMatchObject({
-      failCode: "SOLAPI_BAD_REQUEST",
+      failCode: "SOLAPI_InvalidApiKey",
       retryable: false,
     });
   });

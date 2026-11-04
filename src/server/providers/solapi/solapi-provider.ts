@@ -48,8 +48,14 @@ export interface SolapiClient {
   send(messages: readonly SolapiMessage[]): Promise<SolapiResponse>;
 }
 
-/** 요청 자체가 잘못된 경우. 그대로 다시 보내도 같으므로 재시도하지 않는다. */
-export class SolapiBadRequest extends Error {}
+/** 다시 보내도 결과가 같은 경우. failCode는 그대로 메시지의 실패 사유가 된다. */
+export class SolapiRejected extends Error {
+  readonly failCode: string;
+  constructor(failCode: string, message: string) {
+    super(message);
+    this.failCode = failCode;
+  }
+}
 
 const reportSchema = z.array(
   z.object({
@@ -97,8 +103,10 @@ export function createSolapiProvider(options: {
           })),
         );
       } catch (cause) {
-        if (cause instanceof SolapiBadRequest) {
-          return rejectAll("SOLAPI_BAD_REQUEST", false);
+        // 삼키면 왜 안 나갔는지 알 길이 없다. 키는 SDK 메시지에 들어가지 않고, 수신번호도 넣지 않는다.
+        console.error("솔라피 발송 실패", describeError(cause));
+        if (cause instanceof SolapiRejected) {
+          return rejectAll(cause.failCode, false);
         }
         // 확인 필요: 솔라피에는 멱등 키가 없다. 응답만 끊긴 경우 재시도가 중복 발송이 될 수 있다.
         // 기획서대로 네트워크·5xx는 재시도하되 위험은 결정 기록에 남겼다.
@@ -182,6 +190,12 @@ export function createSolapiProvider(options: {
       return timingSafeEqual(actual.toLowerCase(), expected);
     },
   };
+}
+
+function describeError(cause: unknown): string {
+  const text =
+    cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause);
+  return text.slice(0, 300);
 }
 
 function reportTime(

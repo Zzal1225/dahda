@@ -1,7 +1,11 @@
 -- 실제 발송을 시험할 본사 계정을 만든다. 운영 SQL Editor에서 한 번만 직접 실행한다(자동으로 돌지 않는다).
 --
 -- 준비: Supabase 대시보드 Authentication에서 이메일 사용자를 먼저 만든다.
--- 아래 세 값만 바꾼다. 번호는 숫자만 쓰고, 발신번호는 솔라피에 등록된 번호여야 한다.
+-- 아래 값만 바꾼다. 번호는 숫자만 쓰고, 발신번호는 솔라피에 등록된 번호여야 한다.
+-- 받는 번호는 SOLAPI_ALLOWED_RECIPIENTS에 있어야 한다.
+--
+-- 주소록은 지점 소유라 본사 계정에는 추가 버튼이 없다. 연락처를 담을 시험 지점을 함께 만든다.
+-- 문자 작성에서 "주소록에서 선택"으로 번호를 찾아 본사 계정으로 보낸다.
 --
 -- 잔액은 원래 결제로만 생긴다. 토스 충전이 없어 시험용 결제 기록을 함께 만든다. payment_key로 구분할 수 있다.
 -- 체험이 아닌 본사라 SMS_PROVIDER=solapi면 실제 문자가 나간다. 허용 번호와 하루 상한은 그대로 적용된다.
@@ -9,10 +13,12 @@ do $$
 declare
   v_email text := '여기에_이메일';
   v_sender text := '01000000000';
+  v_recipient text := '01000000000';
   v_amount integer := 1000;
   v_user uuid;
   v_org uuid;
   v_payment uuid;
+  v_branch uuid;
 begin
   select id into v_user from auth.users where email = v_email;
   if v_user is null then
@@ -30,6 +36,12 @@ begin
 
   insert into public.sender_numbers (org_id, number, label, is_default)
   values (v_org, v_sender, '내 번호', true);
+
+  insert into public.branches (org_id, name) values (v_org, '시험 지점')
+  returning id into v_branch;
+
+  insert into public.contacts (org_id, branch_id, phone, name)
+  values (v_org, v_branch, v_recipient, '나');
 
   insert into public.payments (org_id, requested_by, order_id, payment_key, amount, status, approved_at)
   values (v_org, v_user, 'manual-' || v_org, 'manual-test-' || v_org, v_amount, 'done', now())
