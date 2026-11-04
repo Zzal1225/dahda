@@ -1,5 +1,6 @@
 import "server-only";
 import { createFakeProvider } from "./fake/fake-provider";
+import { createSolapiProvider } from "./solapi/solapi-provider";
 import type { SmsProvider } from "./sms-provider";
 
 /**
@@ -16,6 +17,10 @@ export function webhookProviderFor(name: string): SmsProvider | null {
       deliver: async () => {},
       onDeliveryError: () => {},
     });
+  }
+  if (name === "solapi") {
+    const webhookSecret = process.env.SOLAPI_WEBHOOK_SECRET;
+    return webhookSecret ? createSolapiProvider({ webhookSecret }) : null;
   }
   return null;
 }

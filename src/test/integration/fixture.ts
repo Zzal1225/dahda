@@ -324,6 +324,14 @@ export async function createFixture() {
       .select("id"),
   );
 
+  // 먼 과거 날짜라 오늘의 상한 계산에 섞이지 않는다.
+  must(
+    await service
+      .from("real_send_counters")
+      .upsert({ day: "2000-01-01", sent: 0 })
+      .select("day"),
+  );
+
   const tokens = new Map<keyof typeof users, string>();
 
   return {

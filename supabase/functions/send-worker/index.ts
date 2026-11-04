@@ -2,12 +2,23 @@
 // Vercel 함수 대신 Edge Function을 쓰는 이유는 기획서 "발송 큐와 재시도"에 있다.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createFakeProvider } from "../../../src/server/providers/fake/fake-provider.ts";
+import {
+  createGuardedProvider,
+  parseAllowedRecipients,
+  usesRealProvider,
+} from "../../../src/server/providers/guarded-provider.ts";
+import { createSolapiClient } from "../../../src/server/providers/solapi/solapi-client.ts";
+import { createSolapiProvider } from "../../../src/server/providers/solapi/solapi-provider.ts";
+import type { SmsProvider } from "../../../src/server/providers/sms-provider.ts";
 import { createSupabaseQueueStore } from "../../../src/server/queue/supabase-store.ts";
 import { runWorkerTick } from "../../../src/server/queue/worker.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
-const DEFAULT_BATCH_SIZE = 100; // 확인 필요: 솔라피 초당 제한을 확인한 뒤 4-4에서 조정한다.
+// 측정 3: 10초마다 한 묶음이라 100이면 1만 건에 약 17분, 500이면 약 3분이다.
+// 솔라피는 호출당 1만 건, 5초에 100회까지 받으므로 500은 제한에 닿지 않는다(docs/decisions 솔라피 연동).
+const DEFAULT_BATCH_SIZE = 500;
+const DEFAULT_DAILY_LIMIT = 10;
 const LEASE_SECONDS = 300;
 
 function required(name: string): string {
@@ -63,16 +74,50 @@ Deno.serve(async (request) => {
       },
     });
 
+    const supabase = createClient(
+      required("SUPABASE_URL"),
+      required("SUPABASE_SERVICE_ROLE_KEY"),
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+
+    const smsProvider = Deno.env.get("SMS_PROVIDER");
+    // 필요할 때만 만든다. 키가 없는 환경에서 체험 계정 발송까지 막히면 안 된다.
+    let real: SmsProvider | undefined;
+    const realProvider = () => {
+      real ??= createGuardedProvider(
+        createSolapiProvider({
+          webhookSecret: required("SOLAPI_WEBHOOK_SECRET"),
+          client: createSolapiClient(
+            required("SOLAPI_API_KEY"),
+            required("SOLAPI_API_SECRET"),
+          ),
+        }),
+        {
+          allowedRecipients: parseAllowedRecipients(
+            Deno.env.get("SOLAPI_ALLOWED_RECIPIENTS"),
+          ),
+          dailyLimit: Number(
+            Deno.env.get("SOLAPI_DAILY_LIMIT") ?? DEFAULT_DAILY_LIMIT,
+          ),
+          reserve: async (count, limit) => {
+            const { data, error } = await supabase.rpc("reserve_real_sends", {
+              p_count: count,
+              p_limit: limit,
+            });
+            if (error) throw error;
+            return data;
+          },
+        },
+      );
+      return real;
+    };
+
     const summary = await runWorkerTick({
-      store: createSupabaseQueueStore(
-        createClient(
-          required("SUPABASE_URL"),
-          required("SUPABASE_SERVICE_ROLE_KEY"),
-          { auth: { persistSession: false, autoRefreshToken: false } },
-        ),
-      ),
-      // 실제 업체는 4-4에서 연결한다. 그 전까지 모든 계정이 가짜 발송기라 실제 문자는 나갈 수 없다.
-      providerFor: () => fake,
+      store: createSupabaseQueueStore(supabase),
+      providerFor: (message) =>
+        usesRealProvider({ isTrial: message.isTrial, smsProvider })
+          ? realProvider()
+          : fake,
       batchSize: Number(Deno.env.get("SEND_BATCH_SIZE") ?? DEFAULT_BATCH_SIZE),
       leaseSeconds: LEASE_SECONDS,
     });

@@ -297,6 +297,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"real_send_counters": {
+                  Row: {
+                    "day": string,"sent": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "day": string,"sent"?: number
+                  }
+                  Update: {
+                    "day"?: string,"sent"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"sender_numbers": {
                   Row: {
                     "branch_id": string | null,"created_at": string,"id": string,"is_default": boolean,"label": string,"number": string,"org_id": string,"updated_at": string
@@ -402,6 +416,9 @@ isOneToOne: false
                            },
 "reserve_balance":
 { Args: { "p_amount": number,"p_branch_id": string,"p_campaign_id": string,"p_idempotency_key": string,"p_org_id": string }; Returns: number
+                           },
+"reserve_real_sends":
+{ Args: { "p_count": number,"p_limit": number }; Returns: number
                            },
 "retry_failed_messages":
 { Args: { "p_created_by": string,"p_message_ids": (number)[],"p_org_id": string,"p_source_id": string }; Returns: string
