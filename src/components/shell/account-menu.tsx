@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/features/auth/actions";
 
-// 시안의 로그아웃은 설정 화면에 있다. 설정 화면이 생기기 전에도 로그아웃할 수 있어야 해서 아바타에 둔다.
+// 시안의 로그아웃은 설정 화면에 있다. 어느 화면에서든 바로 나갈 수 있어 아바타 메뉴에도 둔다.
 export function AccountMenu({ displayName }: { displayName: string }) {
   return (
     <DropdownMenu>

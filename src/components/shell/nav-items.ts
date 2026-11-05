@@ -73,7 +73,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "설정",
     shortLabel: "설정",
     icon: "sliders-horizontal",
-    ready: false,
+    ready: true,
   },
 ];
 

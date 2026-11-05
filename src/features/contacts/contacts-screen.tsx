@@ -137,6 +137,7 @@ export function ContactsScreen({
   groups,
   branches,
   canEdit,
+  canExport,
 }: {
   rows: ContactRow[];
   total: number;
@@ -144,6 +145,7 @@ export function ContactsScreen({
   groups: readonly GroupRow[];
   branches: readonly { id: string; name: string }[];
   canEdit: boolean;
+  canExport: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -245,6 +247,21 @@ export function ContactsScreen({
               </option>
             ))}
           </select>
+        )}
+        {canExport && (
+          // 페이지 번호는 넘기지 않는다. 지금 걸린 조건에 맞는 전체를 받는다.
+          <a
+            href={`/api/contacts/export?${new URLSearchParams(
+              Object.entries({
+                q: filters.q,
+                group: filters.group ?? "",
+                branch: filters.branch ?? "",
+              }).filter(([, value]) => value),
+            )}`}
+            className="ml-auto inline-flex h-(--control-h) items-center rounded-md border border-border-strong bg-surface px-4 text-body-sm font-bold outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            엑셀 내보내기
+          </a>
         )}
         {canEdit && (
           <div className="ml-auto flex flex-wrap items-center gap-2">

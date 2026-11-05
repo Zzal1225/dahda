@@ -35,6 +35,7 @@ async function Contacts({ searchParams }: PageProps<"/contacts">) {
       groups={groups}
       branches={branches.data ?? []}
       canEdit={member.role === "branch"}
+      canExport={member.role === "hq"}
     />
   );
 }

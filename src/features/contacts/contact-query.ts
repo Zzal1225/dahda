@@ -44,6 +44,7 @@ function escapeLike(value: string): string {
 export async function listContacts(
   supabase: SupabaseClient<Database>,
   filters: ContactFilters,
+  pageSize: number = CONTACT_PAGE_SIZE,
 ): Promise<{ rows: ContactRow[]; total: number }> {
   // 그룹으로 거를 때만 !inner로 묶는다. 항상 묶으면 그룹 없는 연락처가 사라진다.
   const groupEmbed = filters.group
@@ -67,12 +68,14 @@ export async function listContacts(
       : request.ilike("name", `%${escapeLike(filters.q)}%`);
   }
 
-  const offset = (filters.page - 1) * CONTACT_PAGE_SIZE;
+  const offset = (filters.page - 1) * pageSize;
   const { data, error, count } = await request
     // 엑셀 업로드처럼 같은 시각에 만든 행이 많아, 뒤섞여 보이지 않게 번호로 정렬한다.
     .order("created_at", { ascending: false })
     .order("phone")
-    .range(offset, offset + CONTACT_PAGE_SIZE - 1)
+    // 지점이 다르면 같은 시각에 같은 번호가 있을 수 있다. 내보내기는 페이지를 이어 읽으므로 순서가 고정돼야 한다.
+    .order("id")
+    .range(offset, offset + pageSize - 1)
     .overrideTypes<
       {
         id: string;
