@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
  * shadcn/ui Button을 복사해 핸드오프 명세로 바꿨다. shadcn의 background·foreground 변수를 거치지 않고
  * 토큰을 바로 쓴다. 이름을 한 번 더 연결하면 토큰 원본에서 화면까지 따라가는 단계만 늘어난다.
  */
-const buttonVariants = cva(
+export const buttonVariants = cva(
   "inline-flex h-(--control-h) cursor-pointer items-center justify-center gap-2 rounded-md px-4 text-body-sm font-bold whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-text-disabled",
   {
     variants: {

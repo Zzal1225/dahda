@@ -20,38 +20,34 @@ export const campaignQuerySchema = z.object({
 });
 export type CampaignQuery = z.infer<typeof campaignQuerySchema>;
 
-/**
- * 호출자가 사용자 권한 클라이언트를 넘긴다. 지점 사용자가 다른 지점 id로 필터해도 RLS가 빈 결과를 돌려준다.
- * 작성 중인 건은 아직 발송 내역이 아니어서 뺀다.
- */
-export async function listCampaigns(
-  supabase: SupabaseClient<Database>,
-  query: CampaignQuery,
-): Promise<CampaignRow[]> {
-  let request = supabase
-    .from("campaigns")
-    .select(
-      "id, branch_id, body, kind, is_ad, status, recipient_count, unit_price, estimated_cost, sent_count, delivered_count, failed_count, started_at, scheduled_at, reviewed_at, rejected_reason, retry_of_campaign_id, created_at, branches(name)",
-    )
-    .neq("status", "draft");
+/** 첫 화면도 같은 열을 읽는다. 열 이름 변환이 두 벌이 되지 않게 여기 하나만 둔다. */
+export const CAMPAIGN_COLUMNS =
+  "id, branch_id, body, kind, is_ad, status, recipient_count, unit_price, estimated_cost, sent_count, delivered_count, failed_count, started_at, scheduled_at, reviewed_at, rejected_reason, retry_of_campaign_id, created_at, branches(name)";
 
-  if (query.from) request = request.gte("created_at", query.from);
-  if (query.to) request = request.lt("created_at", query.to);
-  if (query.branch === HQ_BRANCH_FILTER) {
-    request = request.is("branch_id", null);
-  } else if (query.branch) {
-    request = request.eq("branch_id", query.branch);
-  }
-  if (query.ad !== "all") request = request.eq("is_ad", query.ad === "ad");
+type CampaignColumns = {
+  id: string;
+  branch_id: string | null;
+  body: string;
+  kind: CampaignRow["kind"];
+  is_ad: boolean;
+  status: CampaignRow["status"];
+  recipient_count: number;
+  unit_price: number;
+  estimated_cost: number;
+  sent_count: number;
+  delivered_count: number;
+  failed_count: number;
+  started_at: string | null;
+  scheduled_at: string | null;
+  reviewed_at: string | null;
+  rejected_reason: string | null;
+  retry_of_campaign_id: string | null;
+  created_at: string;
+  branches: { name: string } | null;
+};
 
-  const { data, error } = await request
-    .order("created_at", { ascending: false })
-    .order("id")
-    .limit(CAMPAIGN_LIST_LIMIT);
-
-  if (error) throw new Error(`발송 건 조회 실패: ${error.message}`);
-
-  return data.map((row) => ({
+export function toCampaignRow(row: CampaignColumns): CampaignRow {
+  return {
     id: row.id,
     branchId: row.branch_id,
     branchName: row.branches?.name ?? null,
@@ -70,5 +66,37 @@ export async function listCampaigns(
     reviewedAt: row.reviewed_at,
     rejectedReason: row.rejected_reason,
     retryOfCampaignId: row.retry_of_campaign_id,
-  }));
+  };
+}
+
+/**
+ * 호출자가 사용자 권한 클라이언트를 넘긴다. 지점 사용자가 다른 지점 id로 필터해도 RLS가 빈 결과를 돌려준다.
+ * 작성 중인 건은 아직 발송 내역이 아니어서 뺀다.
+ */
+export async function listCampaigns(
+  supabase: SupabaseClient<Database>,
+  query: CampaignQuery,
+): Promise<CampaignRow[]> {
+  let request = supabase
+    .from("campaigns")
+    .select(CAMPAIGN_COLUMNS)
+    .neq("status", "draft");
+
+  if (query.from) request = request.gte("created_at", query.from);
+  if (query.to) request = request.lt("created_at", query.to);
+  if (query.branch === HQ_BRANCH_FILTER) {
+    request = request.is("branch_id", null);
+  } else if (query.branch) {
+    request = request.eq("branch_id", query.branch);
+  }
+  if (query.ad !== "all") request = request.eq("is_ad", query.ad === "ad");
+
+  const { data, error } = await request
+    .order("created_at", { ascending: false })
+    .order("id")
+    .limit(CAMPAIGN_LIST_LIMIT);
+
+  if (error) throw new Error(`발송 건 조회 실패: ${error.message}`);
+
+  return data.map(toCampaignRow);
 }
