@@ -39,6 +39,21 @@ export function createSolapiClient(
   const service = new SolapiMessageService(apiKey, apiSecret);
 
   return {
+    // 웹훅을 놓친 메시지를 묻는다. 예외를 그대로 올린다. 조회 실패는 "결과 없음"이 아니라서 호출자가 구분해야 한다.
+    async getMessages(ids) {
+      const response = await service.getMessages({
+        messageIds: [...ids],
+        limit: ids.length,
+      });
+      // 응답은 배열이 아니라 messageId를 키로 하는 객체다.
+      return Object.entries(response.messageList).map(([messageId, item]) => ({
+        messageId,
+        statusCode: item.statusCode,
+        dateReceived: item.dateReceived,
+        dateReported: item.dateReported,
+      }));
+    },
+
     async send(messages: readonly SolapiMessage[]) {
       try {
         return await service.send([...messages], {

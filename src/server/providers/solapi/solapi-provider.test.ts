@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SendRequest, WebhookRequest } from "../sms-provider";
 import {
   createSolapiProvider,
+  type SolapiStoredMessage,
   SolapiRejected,
   type SolapiClient,
   type SolapiMessage,
@@ -219,5 +220,59 @@ describe("verifySignature", () => {
     ["뒤에 덧붙임", { "x-solapi-secret": `${sha1}00` }],
   ])("%s는 거부한다", async (_, headers) => {
     expect(await verify(headers as Record<string, string>)).toBe(false);
+  });
+});
+
+describe("fetchResults", () => {
+  const lookup = (items: SolapiStoredMessage[]) => {
+    const getMessages = vi.fn(async () => items);
+    const provider = createSolapiProvider({
+      webhookSecret: "secret",
+      client: { send: async () => ({ failedMessageList: [] }), getMessages },
+    });
+    return { provider, getMessages };
+  };
+
+  it("코드를 도착, 실패, 진행 중으로 나눈다", async () => {
+    const { provider } = lookup([
+      {
+        messageId: "A",
+        statusCode: "4000",
+        dateReceived: "2026-11-05T04:55:50.000Z",
+      },
+      { messageId: "B", statusCode: "3032" },
+      { messageId: "C", statusCode: "3000" },
+      { messageId: "D", statusCode: "2000" },
+      { messageId: "E", statusCode: null },
+    ]);
+    expect(await provider.fetchResults?.(["A"])).toEqual([
+      {
+        providerMessageId: "A",
+        status: "delivered",
+        occurredAt: new Date("2026-11-05T04:55:50.000Z"),
+      },
+      {
+        providerMessageId: "B",
+        status: "failed",
+        failCode: "3032",
+        occurredAt: null,
+      },
+      { providerMessageId: "C", status: "pending" },
+      { providerMessageId: "D", status: "pending" },
+      { providerMessageId: "E", status: "pending" },
+    ]);
+  });
+
+  it("많으면 100건씩 나눠 묻는다", async () => {
+    const { provider, getMessages } = lookup([]);
+    await provider.fetchResults?.(
+      Array.from({ length: 250 }, (_, index) => `M${index}`),
+    );
+    expect(getMessages).toHaveBeenCalledTimes(3);
+  });
+
+  it("클라이언트가 없으면 예외를 던진다", async () => {
+    const provider = createSolapiProvider({ webhookSecret: "secret" });
+    await expect(provider.fetchResults?.(["A"])).rejects.toThrow();
   });
 });

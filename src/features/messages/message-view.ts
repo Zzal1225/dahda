@@ -23,6 +23,7 @@ const FAIL_REASONS: Record<string, string> = {
   DAILY_LIMIT: "하루 발송 상한 초과",
   RETRY_EXHAUSTED: "재시도 횟수 초과",
   SOLAPI_NO_RESULT: "접수 결과 확인 불가",
+  RESULT_TIMEOUT: "결과를 받지 못함",
   SOLAPI_BAD_REQUEST: "잘못된 발송 요청",
   SOLAPI_UNAVAILABLE: "문자 업체 일시 오류",
   // 솔라피. 출처: https://solapi.com/developers/api/msgstatus (2026-11-04 확인)

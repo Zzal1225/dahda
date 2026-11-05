@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  LookupResult,
   SendRequest,
   SendResult,
   SmsProvider,
@@ -39,6 +40,13 @@ type ResultItem = {
   customFields?: Readonly<Record<string, string>> | null;
 };
 
+export type SolapiStoredMessage = {
+  messageId: string;
+  statusCode?: string | null;
+  dateReceived?: string | null;
+  dateReported?: string | null;
+};
+
 export type SolapiResponse = {
   messageList?: readonly ResultItem[];
   failedMessageList: readonly ResultItem[];
@@ -46,6 +54,7 @@ export type SolapiResponse = {
 
 export interface SolapiClient {
   send(messages: readonly SolapiMessage[]): Promise<SolapiResponse>;
+  getMessages?(ids: readonly string[]): Promise<SolapiStoredMessage[]>;
 }
 
 /** 다시 보내도 결과가 같은 경우. failCode는 그대로 메시지의 실패 사유가 된다. */
@@ -56,6 +65,9 @@ export class SolapiRejected extends Error {
     this.failCode = failCode;
   }
 }
+
+// 조회 한 번에 묻는 수. 문서상 응답 상한은 500건이고, 주소 길이가 먼저 한계가 되지 않게 작게 둔다.
+const LOOKUP_CHUNK = 100;
 
 const reportSchema = z.array(
   z.object({
@@ -152,6 +164,41 @@ export function createSolapiProvider(options: {
           retryable: false,
         };
       });
+    },
+
+    async fetchResults(ids: readonly string[]): Promise<LookupResult[]> {
+      const getMessages = options.client?.getMessages;
+      if (!getMessages) throw new Error("솔라피 조회 클라이언트가 없다");
+
+      const results: LookupResult[] = [];
+      for (let start = 0; start < ids.length; start += LOOKUP_CHUNK) {
+        const items = await getMessages(ids.slice(start, start + LOOKUP_CHUNK));
+        for (const item of items) {
+          const code = item.statusCode;
+          const providerMessageId = item.messageId;
+          const reported = item.dateReceived ?? item.dateReported;
+          const parsed = reported ? new Date(reported) : null;
+          const occurredAt =
+            parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+          if (!code || IN_PROGRESS_CODES.has(code)) {
+            results.push({ providerMessageId, status: "pending" });
+          } else if (code === DELIVERED_CODE) {
+            results.push({
+              providerMessageId,
+              status: "delivered",
+              occurredAt,
+            });
+          } else {
+            results.push({
+              providerMessageId,
+              status: "failed",
+              failCode: code,
+              occurredAt,
+            });
+          }
+        }
+      }
+      return results;
     },
 
     parseWebhook(request: WebhookRequest): WebhookEvent[] {
