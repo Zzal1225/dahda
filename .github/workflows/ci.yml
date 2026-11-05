@@ -78,6 +78,9 @@ jobs:
             ].join("\n"));
           '
       - run: npx playwright install --with-deps chromium
+      - name: 공용 샘플 시드
+        # 통합 테스트가 지우고 끝나므로 브라우저 테스트 전에 넣는다.
+        run: npx supabase db query "select public.seed_public_sample()"
       - name: E2E 테스트
         run: npm run test:e2e
       - name: 실패 시 추적 파일 보관

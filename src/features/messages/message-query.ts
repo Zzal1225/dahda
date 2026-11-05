@@ -28,6 +28,23 @@ export const messageQuerySchema = z.object({
 });
 export type MessageQuery = z.infer<typeof messageQuerySchema>;
 
+/** 두 조회 경로가 같은 규칙으로 읽는다. override는 공용 샘플처럼 값을 입력에서 받지 않을 때 쓴다. */
+export function parseMessageQuery(
+  params: URLSearchParams,
+  override: { campaignId?: string } = {},
+) {
+  return messageQuerySchema.safeParse({
+    campaignId: override.campaignId ?? params.get("campaignId"),
+    status: params.getAll("status"),
+    q: params.get("q") ?? undefined,
+    offset: params.get("offset") ?? undefined,
+    limit: params.get("limit") ?? undefined,
+    withTotal: params.get("withTotal") === "1",
+    sort: params.get("sort") ?? undefined,
+    desc: params.get("desc") !== "0",
+  });
+}
+
 export type MessageRow = {
   id: number;
   phone: string;
