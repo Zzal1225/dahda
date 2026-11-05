@@ -33,12 +33,12 @@
 | 엑셀 | SheetJS(xlsx) + Web Worker (직접 작성, 라이브러리 없음) |
 | 스타일·컴포넌트 | Tailwind + shadcn/ui + lucide-react. 디자인 토큰 원본은 핸드오프 `0 디자인 시스템.dc.html` (`tokens.test.ts`가 일치 검사) |
 | 문자 | 솔라피 SDK (어댑터 안에서만) + 가짜 발송기 |
-| 결제 | 토스페이먼츠 결제위젯 + 서버 승인 API (테스트 키만) |
+| 결제 | 토스페이먼츠 결제창(API 개별 연동 키) + 서버 승인 API (테스트 키만, 코드로 강제) |
 | 테스트 | Vitest, Testing Library, MSW, Playwright (E2E + 1280/1440 화면 비교) |
 | CI/CD | GitHub Actions, Lighthouse CI(발송 내역 1개), Vercel, Supabase CLI 마이그레이션 |
 
 - 위 목록에 없는 라이브러리는 먼저 **이유와 대안**을 제시하고 승인을 받는다.
-- 외부 서비스 SDK·비밀 키는 `server/providers/` 밖에서 import하지 않는다. 브라우저에서 외부 API를 직접 부르지 않는다.
+- 외부 서비스 SDK·비밀 키는 `server/providers/` 밖에서 import하지 않는다. 브라우저에서 외부 API를 직접 부르지 않는다. 예외는 결제창을 여는 `features/billing/charge-panel.tsx`의 토스 SDK 하나이며 공개용 클라이언트 키만 쓴다.
 - `SmsProvider` 인터페이스(`send`, `parseWebhook`, `verifySignature`) 하나에 `SolapiProvider`, `FakeProvider` 두 구현. 선택은 환경 변수.
 - 실제 발송 안전장치: 허용 수신번호 목록과 하루 상한(환경 변수)을 어댑터 앞단에서 코드로 막는다. CI·테스트는 항상 가짜 발송기. 체험은 위 예외 경로 외에는 가짜 발송기.
 - 결제 금액은 브라우저 값을 믿지 않고 승인 전에 DB `payments.amount`와 대조한다. 승인과 거래 기록은 한 트랜잭션.
@@ -65,10 +65,11 @@ src/
     contacts/          주소록·그룹·수신거부·엑셀 업로드(worker/). 번호 정규화는 lib/phone.ts 하나만 쓴다
     campaigns/         발송 건 작성·승인·내역, status.ts(상태 전이), campaignSchema.ts(사용자 요청으로 Claude 작성)
     messages/          수신자별 메시지 표(10만 행), useTableState.ts(사용자 요청으로 Claude 작성)
-    billing/           충전·거래 기록·토스 연동 화면
+    billing/           충전·거래 기록 화면, 결제창 호출(charge-panel.tsx)
     demo/              체험 계정의 실제 문자 받아 보기(고정 본문, 안전장치는 server/providers/guarded-provider.ts)
   server/
-    providers/         SmsProvider 인터페이스, solapi/, fake/
+    providers/         SmsProvider 인터페이스, solapi/, fake/, toss/
+    payments/          토스 승인·웹훅 처리(settle-payment.ts)
     queue/             워커 로직(Edge Function에서 호출), 재시도 규칙
     auth/              requireRole.ts(사용자 요청으로 Claude 작성), RLS 보조
   server/supabase/     요청 사용자 클라이언트(server.ts), RLS를 건너뛰는 클라이언트(admin.ts)

@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Lock } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -547,7 +548,10 @@ export function ComposeScreen({
               </p>
             ) : shortage > 0 ? (
               <p className="text-body-sm font-bold text-danger">
-                잔액이 {formatWon(shortage)} 부족해요
+                잔액이 {formatWon(shortage)} 부족해요{" "}
+                <Link href="/billing" className="underline">
+                  충전하기
+                </Link>
               </p>
             ) : (
               <p className="text-body-sm text-text-muted">

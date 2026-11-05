@@ -69,6 +69,8 @@ jobs:
               `SUPABASE_SECRET_KEY=${s.SECRET_KEY}`,
               `FAKE_WEBHOOK_SECRET=ci-fake-webhook-secret`,
               `DEMO_SENDER_NUMBER=01000000000`,
+              `TOSS_CLIENT_KEY=test_ck_ci`,
+              `TOSS_SECRET_KEY=test_sk_ci`,
             ].join("\n"));
           '
       - run: npx playwright install --with-deps chromium

@@ -408,6 +408,9 @@ isOneToOne: false
 "complete_campaign":
 { Args: { "p_campaign_id": string }; Returns: boolean
                            },
+"confirm_payment":
+{ Args: { "p_amount": number,"p_approved_at": string,"p_order_id": string,"p_payment_key": string }; Returns: string
+                           },
 "create_trial_org":
 { Args: { "p_user_id": string }; Returns: string
                            },

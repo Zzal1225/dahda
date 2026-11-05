@@ -66,7 +66,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "충전",
     shortLabel: "충전",
     icon: "credit-card",
-    ready: false,
+    ready: true,
   },
   {
     href: "/settings",
