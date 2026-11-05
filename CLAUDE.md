@@ -77,6 +77,7 @@ src/
   test/integration/    RLS·제약·잔액 통합 테스트 (npm run test:integration, 로컬 Supabase 필요)
   components/shell/    사이드바·상단 바·역할 전환, nav-items.ts(메뉴와 역할)
   components/ui/       shadcn/ui 복사본 + 토큰, 공통 표 data-table.tsx
+  app/design-system/   공개 디자인 시스템 페이지. 토큰 목록은 features/design-system/design-tokens.ts
   proxy.ts             토큰 갱신, 세션 없는 요청 이동만 (권한 판단 금지)
 e2e/                   Playwright (npm run test:e2e, 로컬 Supabase 필요)
 supabase/

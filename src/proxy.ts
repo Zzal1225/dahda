@@ -42,8 +42,10 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 처리방침은 로그인 전에도 읽을 수 있어야 한다. 체험을 시작하기 전에 볼 내용이다.
-  const isPublic = ["/login", "/privacy"].includes(request.nextUrl.pathname);
+  // 처리방침은 체험을 시작하기 전에 읽는 내용이고, 디자인 시스템은 포트폴리오로 공개하는 화면이다.
+  const isPublic = ["/login", "/privacy", "/design-system"].includes(
+    request.nextUrl.pathname,
+  );
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
