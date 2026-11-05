@@ -101,7 +101,7 @@ export function LoginPanel() {
           로그인 없이 체험하기
         </Button>
         <p className="text-center text-caption text-text-muted">
-          샘플 데이터이고 실제 문자는 나가지 않아요
+          샘플 데이터예요. 실제 문자는 번호를 직접 넣을 때만 나가요
         </p>
       </div>
     </div>

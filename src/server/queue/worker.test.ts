@@ -27,6 +27,7 @@ function message(
     kind: "sms",
     senderPhone: "0212345678",
     isAd: false,
+    isRealDemo: false,
     isTrial: true,
     ...patch,
   };

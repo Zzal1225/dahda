@@ -37,6 +37,7 @@ export type ClaimedMessage = {
   senderPhone: string;
   isAd: boolean;
   isTrial: boolean;
+  isRealDemo: boolean;
 };
 
 export type MessageUpdate = {

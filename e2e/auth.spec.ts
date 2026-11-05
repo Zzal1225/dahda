@@ -13,8 +13,8 @@ test.describe("체험하기", () => {
     await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
 
     await expect(page).toHaveURL("http://127.0.0.1:3000/");
-    await expect(page.getByRole("note")).toHaveText(
-      "체험 계정이에요. 실제 문자는 나가지 않아요",
+    await expect(page.getByRole("note")).toContainText(
+      "문자 작성은 가짜 발송기로 처리돼요",
     );
     const header = page.getByRole("banner");
     await expect(header).toContainText("전체 지점");
