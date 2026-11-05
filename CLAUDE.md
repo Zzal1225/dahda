@@ -35,7 +35,7 @@
 | 문자 | 솔라피 SDK (어댑터 안에서만) + 가짜 발송기 |
 | 결제 | 토스페이먼츠 결제창(API 개별 연동 키) + 서버 승인 API (테스트 키만, 코드로 강제) |
 | 테스트 | Vitest, Testing Library, MSW, Playwright (E2E + 1280/1440 화면 비교) |
-| CI/CD | GitHub Actions, Lighthouse CI(발송 내역 1개), Vercel, Supabase CLI 마이그레이션 |
+| CI/CD | GitHub Actions, Lighthouse(발송 내역 1개, scripts/measure-lighthouse.mjs), Vercel, Supabase CLI 마이그레이션 |
 
 - 위 목록에 없는 라이브러리는 먼저 **이유와 대안**을 제시하고 승인을 받는다.
 - 외부 서비스 SDK·비밀 키는 `server/providers/` 밖에서 import하지 않는다. 브라우저에서 외부 API를 직접 부르지 않는다. 예외는 결제창을 여는 `features/billing/charge-panel.tsx`의 토스 SDK 하나이며 공개용 클라이언트 키만 쓴다.

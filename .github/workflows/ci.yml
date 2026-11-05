@@ -81,5 +81,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces
-          path: test-results
+          # 화면 비교 기준 이미지도 함께 올린다. 기준이 없을 때 Playwright가 여기에 새로 만든다.
+          path: |
+            test-results
+            e2e/visual.spec.ts-snapshots
           retention-days: 7

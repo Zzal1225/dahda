@@ -1,0 +1,82 @@
+import { expect, test, type Locator, type Page } from "@playwright/test";
+
+/**
+ * 핵심 화면 4개 × 1280·1440 화면 비교. 글꼴 렌더링이 OS마다 달라 기준 이미지는 CI와 같은 Linux 것만 둔다.
+ * 다른 OS에서는 건너뛴다. 기준을 바꾸려면 CI 실패 시 올라오는 playwright-traces의 이미지를 받아 교체한다.
+ *
+ * 체험 샘플은 시각이 매번 다르고, 같은 시각에 만든 발송 건의 순서도 정해져 있지 않다.
+ * 그 부분은 가려서 레이아웃과 스타일만 비교한다.
+ */
+test.skip(
+  process.platform !== "linux" && !process.env.VISUAL_ANY_OS,
+  "기준 이미지는 Linux 전용",
+);
+
+const WIDTHS = [1280, 1440] as const;
+
+/** 머리글은 남기고 본문 행만 가린다. 전체를 가리면 표 스타일이 바뀌어도 잡지 못한다. */
+const bodyRows = (page: Page) =>
+  page.locator('[role="table"] [role="row"]:not([role="rowgroup"].sticky > *)');
+
+const SCREENS: {
+  name: string;
+  path: string;
+  ready: (page: Page) => Locator;
+  mask: (page: Page) => Locator[];
+}[] = [
+  {
+    name: "home",
+    path: "/",
+    ready: (page) => page.getByRole("table", { name: "최근 발송" }),
+    mask: (page) => [
+      page.getByRole("region", { name: "진행 중인 발송" }).getByRole("list"),
+      bodyRows(page),
+    ],
+  },
+  {
+    name: "history",
+    path: "/history",
+    ready: (page) => page.getByRole("heading", { name: "발송 내역" }),
+    mask: (page) => [bodyRows(page), page.locator("input, select")],
+  },
+  {
+    name: "compose",
+    path: "/compose",
+    ready: (page) => page.getByRole("heading", { name: "문자 작성" }),
+    mask: (page) => [page.locator("select")],
+  },
+  {
+    name: "approvals",
+    path: "/approvals",
+    ready: (page) => page.getByRole("heading", { level: 1 }),
+    mask: () => [],
+  },
+];
+
+test.describe("화면 비교", () => {
+  for (const width of WIDTHS) {
+    test(`핵심 화면 ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/login");
+      await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
+      await expect(page.getByRole("heading", { name: "홈" })).toBeVisible();
+
+      for (const screen of SCREENS) {
+        await page.goto(screen.path);
+        await expect(screen.ready(page)).toBeVisible();
+        // 글꼴이 늦게 오면 글자 폭이 달라져 비교가 흔들린다.
+        await page.evaluate(() => document.fonts.ready);
+        await page.waitForLoadState("networkidle").catch(() => {});
+        await expect(page).toHaveScreenshot(`${screen.name}-${width}.png`, {
+          fullPage: true,
+          animations: "disabled",
+          caret: "hide",
+          mask: screen.mask(page),
+          // 안티에일리어싱 차이는 넘기고, 카드나 표가 움직이면 잡히는 정도다.
+          maxDiffPixelRatio: 0.005,
+          timeout: 15_000,
+        });
+      }
+    });
+  }
+});
