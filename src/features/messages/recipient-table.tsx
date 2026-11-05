@@ -64,10 +64,11 @@ function buildSearchParams(
 }
 
 async function fetchMessages(
+  endpoint: string,
   params: URLSearchParams,
   signal: AbortSignal,
 ): Promise<MessagePage> {
-  const response = await fetch(`/api/messages?${params}`, { signal });
+  const response = await fetch(`${endpoint}?${params}`, { signal });
   if (!response.ok) throw new Error(`메시지 조회 실패: ${response.status}`);
   return (await response.json()) as MessagePage;
 }
@@ -144,10 +145,15 @@ export function RecipientTable({
   scope,
   campaignId,
   state,
+  endpoint = "/api/messages",
+  readOnly = false,
 }: {
   scope: string;
   campaignId: string;
   state: TableState;
+  endpoint?: string;
+  /** 선택 열을 숨긴다. 선택이 없으면 재발송 막대도 나타나지 않는다. */
+  readOnly?: boolean;
 }) {
   const { filters, sort, pageSize, page, selectedIds } = state;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -168,7 +174,7 @@ export function RecipientTable({
   const totalQuery = useQuery({
     queryKey: messageKeys.total(request),
     queryFn: ({ signal }) =>
-      fetchMessages(buildSearchParams(request, 0, 1, true), signal),
+      fetchMessages(endpoint, buildSearchParams(request, 0, 1, true), signal),
   });
   const total = totalQuery.data?.total ?? 0;
 
@@ -206,6 +212,7 @@ export function RecipientTable({
       queryKey: messageKeys.page(request, pageNumber),
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         fetchMessages(
+          endpoint,
           buildSearchParams(
             request,
             (pageNumber - 1) * pageSize,
@@ -251,27 +258,31 @@ export function RecipientTable({
 
   const columns = useMemo<DataTableColumn<MessageRow>[]>(
     () => [
-      column.display({
-        id: "select",
-        meta: { width: "44px" },
-        header: () => (
-          <PageCheckbox
-            ids={currentPageIds}
-            selectedIds={selectedIds}
-            onToggle={() => togglePage(currentPageIds)}
-          />
-        ),
-        cell: ({ row }) => (
-          <input
-            type="checkbox"
-            aria-label={`${formatPhone(row.original.phone)} 선택`}
-            checked={selectedIds.has(row.original.id)}
-            onChange={() => toggleRow(row.original.id)}
-            tabIndex={-1}
-            className="size-4 cursor-pointer accent-primary"
-          />
-        ),
-      }),
+      ...(readOnly
+        ? []
+        : [
+            column.display({
+              id: "select",
+              meta: { width: "44px" },
+              header: () => (
+                <PageCheckbox
+                  ids={currentPageIds}
+                  selectedIds={selectedIds}
+                  onToggle={() => togglePage(currentPageIds)}
+                />
+              ),
+              cell: ({ row }) => (
+                <input
+                  type="checkbox"
+                  aria-label={`${formatPhone(row.original.phone)} 선택`}
+                  checked={selectedIds.has(row.original.id)}
+                  onChange={() => toggleRow(row.original.id)}
+                  tabIndex={-1}
+                  className="size-4 cursor-pointer accent-primary"
+                />
+              ),
+            }),
+          ]),
       column.display({
         id: "phone",
         header: "수신 번호",
@@ -353,7 +364,15 @@ export function RecipientTable({
         cell: ({ row }) => row.original.attemptCount,
       }),
     ],
-    [currentPageIds, selectedIds, sort, toggleRow, togglePage, toggleSort],
+    [
+      readOnly,
+      currentPageIds,
+      selectedIds,
+      sort,
+      toggleRow,
+      togglePage,
+      toggleSort,
+    ],
   );
 
   // 공유 링크로 뒤쪽 페이지에 들어오면 전체 건수를 안 뒤에 그 위치로 스크롤한다.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -146,7 +147,12 @@ export function HistoryScreen({
 
   return (
     <>
-      <h1 className="text-title-lg">발송 내역</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-title-lg">발송 내역</h1>
+        <Link href="/history/sample" className="text-body-sm underline">
+          10만 행 샘플 보기
+        </Link>
+      </div>
 
       <HistoryFilters
         state={state}

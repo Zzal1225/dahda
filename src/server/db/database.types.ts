@@ -440,6 +440,9 @@ isOneToOne: false
 "retry_failed_messages":
 { Args: { "p_created_by": string,"p_message_ids": (number)[],"p_org_id": string,"p_source_id": string }; Returns: string
                            },
+"seed_public_sample":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "start_demo_send":
 { Args: { "p_body": string,"p_branch_id": string,"p_daily_limit": number,"p_org_id": string,"p_phone": string,"p_sender_phone": unknown,"p_unit_price": number,"p_user_id": string }; Returns: string
                            },
