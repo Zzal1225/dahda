@@ -6,6 +6,7 @@
  * .env.solapi(.env*로 gitignore됨): SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_WEBHOOK_SECRET
  *
  * SDK에 웹훅 API가 없어 fetch로 부른다. 웹훅 문서 예시는 Bearer지만 발송 SDK는 HMAC을 쓰므로 SDK 방식을 따랐다.
+ * 삭제 API는 2차 인증이 필요해 API 키로는 403이다. 2026-11-05 실제 호출로 확인했다. 삭제는 콘솔에서 한다.
  * 응답을 그대로 출력하지 않는다. 응답에 secret이 들어 있어도 화면과 터미널 기록에 남지 않게 정해진 열만 보인다.
  */
 import { createHmac, randomBytes } from "node:crypto";
@@ -48,10 +49,9 @@ async function call(method, path, body) {
     // 오류 페이지처럼 JSON이 아닐 수 있다. 아래에서 상태 코드로 알린다.
   }
   if (!response.ok) {
-    console.error(
+    throw new Error(
       `실패 ${response.status} ${json?.errorCode ?? ""} ${json?.errorMessage ?? ""}`,
     );
-    process.exit(1);
   }
   return json;
 }
@@ -79,22 +79,31 @@ function print(webhook) {
 
 const [command, argument] = process.argv.slice(2);
 
-if (command === "list") {
-  const webhooks = findWebhooks(await call("GET", "/webhook/v1/outgoing"));
-  if (webhooks.length === 0) console.log("등록된 웹훅이 없습니다.");
-  webhooks.forEach(print);
-} else if (command === "create") {
-  const created = await call("POST", "/webhook/v1/outgoing", {
-    eventId: "SINGLE-REPORT",
-    url: WEBHOOK_URL,
-    secret: required("SOLAPI_WEBHOOK_SECRET"),
-  });
-  console.log("등록했습니다.");
-  findWebhooks(created).forEach(print);
-} else if (command === "delete" && argument) {
-  await call("DELETE", `/webhook/v1/outgoing/${encodeURIComponent(argument)}`);
-  console.log(`삭제했습니다: ${argument}`);
-} else {
-  console.error("사용: list | create | delete 웹훅ID");
-  process.exit(1);
+// fetch 뒤에 process.exit을 부르면 Windows에서 libuv Assertion이 함께 찍혀 원인이 가려진다. 정상 종료시킨다.
+try {
+  if (command === "list") {
+    const webhooks = findWebhooks(await call("GET", "/webhook/v1/outgoing"));
+    if (webhooks.length === 0) console.log("등록된 웹훅이 없습니다.");
+    webhooks.forEach(print);
+  } else if (command === "create") {
+    const created = await call("POST", "/webhook/v1/outgoing", {
+      eventId: "SINGLE-REPORT",
+      url: WEBHOOK_URL,
+      secret: required("SOLAPI_WEBHOOK_SECRET"),
+    });
+    console.log("등록했습니다.");
+    findWebhooks(created).forEach(print);
+  } else if (command === "delete" && argument) {
+    await call(
+      "DELETE",
+      `/webhook/v1/outgoing/${encodeURIComponent(argument)}`,
+    );
+    console.log(`삭제했습니다: ${argument}`);
+  } else {
+    console.error("사용: list | create | delete 웹훅ID");
+    process.exit(1);
+  }
+} catch (cause) {
+  console.error(cause instanceof Error ? cause.message : String(cause));
+  process.exitCode = 1;
 }
