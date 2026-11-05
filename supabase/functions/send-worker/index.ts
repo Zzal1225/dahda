@@ -14,6 +14,10 @@ import { createSolapiClient } from "../../../src/server/providers/solapi/solapi-
 import { createSolapiProvider } from "../../../src/server/providers/solapi/solapi-provider.ts";
 import type { SmsProvider } from "../../../src/server/providers/sms-provider.ts";
 import { createSupabaseQueueStore } from "../../../src/server/queue/supabase-store.ts";
+import {
+  DEFAULT_RESULT_TIMEOUT_MS,
+  runReconcileTick,
+} from "../../../src/server/queue/reconcile.ts";
 import { runWorkerTick } from "../../../src/server/queue/worker.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
@@ -128,6 +132,22 @@ Deno.serve(async (request) => {
       });
       return demo;
     };
+
+    // pg_cron이 10분마다 따로 부른다. 키와 어댑터를 한 곳에 두려고 함수를 나누지 않았다.
+    const { task } = (await request.json().catch(() => ({}))) as {
+      task?: string;
+    };
+    if (task === "reconcile") {
+      const hours = Number(Deno.env.get("RESULT_TIMEOUT_HOURS"));
+      return Response.json(
+        await runReconcileTick({
+          store: createSupabaseQueueStore(supabase),
+          providerFor: (name) => (name === "solapi" ? solapiProvider() : null),
+          resultTimeoutMs:
+            hours > 0 ? hours * 3_600_000 : DEFAULT_RESULT_TIMEOUT_MS,
+        }),
+      );
+    }
 
     const summary = await runWorkerTick({
       store: createSupabaseQueueStore(supabase),

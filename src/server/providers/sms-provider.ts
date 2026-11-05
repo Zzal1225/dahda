@@ -37,6 +37,13 @@ export type WebhookEvent = {
   occurredAt: Date;
 } & ({ status: "delivered" } | { status: "failed"; failCode: string });
 
+/** 웹훅을 놓쳤을 때 업체에 직접 물은 결과. pending은 아직 진행 중이라 확정하면 안 된다. */
+export type LookupResult = { providerMessageId: string } & (
+  | { status: "pending" }
+  | { status: "delivered"; occurredAt: Date | null }
+  | { status: "failed"; failCode: string; occurredAt: Date | null }
+);
+
 export interface SmsProvider {
   /** messages.provider에 저장하고 웹훅 경로 /api/webhooks/sms/[provider]에 쓰는 이름 */
   readonly name: string;
@@ -52,4 +59,10 @@ export interface SmsProvider {
 
   /** Web Crypto가 비동기라 Promise다. */
   verifySignature(request: WebhookRequest): Promise<boolean>;
+
+  /**
+   * 결과 조회. 조회 API가 없는 발송기는 두지 않는다. 호출 실패는 throw해서 "결과 없음"과 구분한다.
+   * 응답에 없는 메시지는 결과에서 빠진다.
+   */
+  fetchResults?(providerMessageIds: readonly string[]): Promise<LookupResult[]>;
 }

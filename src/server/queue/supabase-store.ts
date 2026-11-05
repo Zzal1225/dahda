@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { transitionCampaign } from "../../features/campaigns/status.ts";
 import type { MessageState } from "../../features/campaigns/status.ts";
 import type { Database } from "../db/database.types.ts";
+import type { ReconcileStore } from "./reconcile.ts";
 import type { MessageUpdate, QueueStore } from "./worker.ts";
 
 const toIso = (value: Date | null | undefined) => value?.toISOString() ?? null;
@@ -45,8 +46,37 @@ export async function settleCampaigns(
  */
 export function createSupabaseQueueStore(
   supabase: SupabaseClient<Database>,
-): QueueStore {
+): QueueStore & ReconcileStore {
   return {
+    async listStaleSent(sentBefore, limit) {
+      const { data, error } = await supabase
+        .from("messages")
+        .select(
+          "id, campaign_id, provider, provider_message_id, status, fail_code, sent_at, finalized_at",
+        )
+        .eq("status", "sent")
+        // 조회 API가 있는 업체만이다. 부분 인덱스와 같은 조건이라 큰 표를 훑지 않는다.
+        .eq("provider", "solapi")
+        .not("provider_message_id", "is", null)
+        .lt("sent_at", sentBefore.toISOString())
+        .order("sent_at")
+        .limit(limit);
+      if (error) throw new Error(`멈춘 메시지 조회 실패: ${error.message}`);
+      return data.map((row) => ({
+        id: row.id,
+        campaignId: row.campaign_id,
+        provider: row.provider ?? "",
+        providerMessageId: row.provider_message_id ?? "",
+        state: {
+          status: row.status,
+          providerMessageId: row.provider_message_id,
+          failCode: row.fail_code,
+          sentAt: toDate(row.sent_at),
+          finalizedAt: toDate(row.finalized_at),
+        },
+      }));
+    },
+
     async claim(limit, leaseSeconds) {
       const { data, error } = await supabase.rpc("claim_messages", {
         p_limit: limit,

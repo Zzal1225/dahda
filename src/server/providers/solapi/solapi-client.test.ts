@@ -96,3 +96,35 @@ describe("createSolapiClient", () => {
     ).rejects.not.toBeInstanceOf(SolapiRejected);
   });
 });
+
+describe("getMessages", () => {
+  it("메시지 id로 조회하고 객체 응답을 목록으로 바꾼다", async () => {
+    const fetchMock = stubFetch(200, {
+      limit: 1,
+      messageList: {
+        M1: {
+          messageId: "M1",
+          statusCode: "4000",
+          dateReceived: "2026-11-05T04:55:50.000Z",
+          dateReported: null,
+          to: "01012345678",
+          from: "01012345678",
+          type: "SMS",
+        },
+      },
+    });
+    const items = await createSolapiClient("KEY", "SECRET").getMessages?.([
+      "M1",
+    ]);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/messages/v4/list");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("M1");
+    expect(items?.[0]).toMatchObject({ messageId: "M1", statusCode: "4000" });
+  });
+
+  it("조회 실패는 빈 결과가 아니라 예외다", async () => {
+    stubFetch(403, { errorCode: "Forbidden", errorMessage: "막힘" });
+    await expect(
+      createSolapiClient("KEY", "SECRET").getMessages?.(["M1"]),
+    ).rejects.toBeDefined();
+  });
+});
