@@ -27,23 +27,28 @@ export type RecipientSummary = {
   total: number;
   optedOut: number;
   duplicates: number;
+  noConsent: number;
 };
 
-/** 화면의 "총 n명 · 수신거부 n명 제외" 요약. 저장과 같은 계산을 써서 숫자가 어긋나지 않게 한다. */
+/** 화면의 "총 n명 · 수신거부 n명 · 미동의 n명 제외" 요약. 저장과 같은 계산을 써서 숫자가 어긋나지 않게 한다. */
 export async function previewRecipients(
   input: unknown,
 ): Promise<RecipientSummary | { error: string }> {
   await requireRole(["hq", "branch"]);
-  const parsed = selectionSchema.safeParse(input);
+  const parsed = selectionSchema
+    .extend({ isAd: z.boolean().default(false) })
+    .safeParse(input);
   if (!parsed.success) return { error: "받는 사람을 확인해 주세요" };
 
   const supabase = await createSupabaseServerClient();
-  const { recipients, optedOut, duplicates } = await resolveRecipients(
-    supabase,
-    parsed.data.groupIds,
-    parsed.data.contactIds,
-  );
-  return { total: recipients.length, optedOut, duplicates };
+  const { recipients, optedOut, duplicates, noConsent } =
+    await resolveRecipients(
+      supabase,
+      parsed.data.groupIds,
+      parsed.data.contactIds,
+      { isAd: parsed.data.isAd },
+    );
+  return { total: recipients.length, optedOut, duplicates, noConsent };
 }
 
 export type ContactOption = {
@@ -147,6 +152,7 @@ export async function submitCampaign(
     supabase,
     values.groupIds,
     values.contactIds,
+    { isAd: values.isAd },
   );
   if (recipients.length === 0) {
     return { error: "보낼 수 있는 받는 사람이 없어요" };

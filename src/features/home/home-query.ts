@@ -7,16 +7,14 @@ import {
 import type { CampaignRow } from "@/features/campaigns/campaign-view";
 import { periodToRange } from "@/lib/kst";
 import type { Database } from "@/server/db/database.types";
+import type { TodayTotals } from "./home-summary";
 
 const ACTIVE_LIMIT = 5;
 const PENDING_LIMIT = 3;
 const RECENT_LIMIT = 5;
-// 오늘 숫자를 메시지 행이 아니라 발송 건 집계에서 계산한다. 하루 발송 건이 이 값을 넘으면 합계가 모자라므로 화면에 알린다.
-const TODAY_LIMIT = 1000;
 
 export type HomeData = {
-  today: CampaignRow[];
-  todayTruncated: boolean;
+  today: TodayTotals | undefined;
   scheduledCount: number;
   active: CampaignRow[];
   activeTotal: number;
@@ -42,10 +40,7 @@ export async function loadHome(
   const [today, scheduled, active, pending, recent, balances, branches] =
     await Promise.all([
       // 예약은 오늘 나간 건이 아니다. 시작 시각으로 세어야 어제 예약해 오늘 나간 건이 들어온다.
-      campaigns()
-        .gte("started_at", todayStart)
-        .in("status", ["sending", "completed"])
-        .limit(TODAY_LIMIT),
+      supabase.rpc("today_campaign_summary", { p_from: todayStart }),
       supabase
         .from("campaigns")
         .select("id", { count: "exact", head: true })
@@ -87,8 +82,7 @@ export async function loadHome(
   if (failure) throw new Error(`첫 화면 조회 실패: ${failure.message}`);
 
   return {
-    today: (today.data ?? []).map(toCampaignRow),
-    todayTruncated: (today.data?.length ?? 0) >= TODAY_LIMIT,
+    today: today.data?.[0],
     scheduledCount: scheduled.count ?? 0,
     active: (active.data ?? []).map(toCampaignRow),
     activeTotal: active.count ?? 0,

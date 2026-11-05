@@ -12,12 +12,20 @@ import {
 
 describe("detectColumns", () => {
   it.each([
-    [["전화번호", "이름", "메모"], { phone: 0, name: 1, memo: 2 }],
-    [["이름", "휴대폰"], { phone: 1, name: 0, memo: -1 }],
-    [[" 전화 번호 ", "성명", "비고"], { phone: 0, name: 1, memo: 2 }],
-    [["Name", "PHONE"], { phone: 1, name: 0, memo: -1 }],
+    [["전화번호", "이름", "메모"], { phone: 0, name: 1, memo: 2, consent: -1 }],
+    [["이름", "휴대폰"], { phone: 1, name: 0, memo: -1, consent: -1 }],
+    [
+      [" 전화 번호 ", "성명", "비고"],
+      { phone: 0, name: 1, memo: 2, consent: -1 },
+    ],
+    [["Name", "PHONE"], { phone: 1, name: 0, memo: -1, consent: -1 }],
   ])("%j", (header, expected) => {
     expect(detectColumns(header)).toEqual(expected);
+  });
+
+  it("수신 동의 열을 찾는다", () => {
+    expect(detectColumns(["전화번호", "수신 동의"])?.consent).toBe(1);
+    expect(detectColumns(["번호", "동의일시"])?.consent).toBe(1);
   });
 
   it("전화번호 열이 없으면 null이다", () => {
@@ -191,5 +199,35 @@ describe("decodeCsv", () => {
       0xc0, 0xfc, 0xc8, 0xad, 0xb9, 0xf8, 0xc8, 0xa3,
     ]);
     expect(decodeCsv(cp949)).toBe("전화번호");
+  });
+});
+
+describe("수신 동의 칸", () => {
+  const NOW = new Date("2026-11-05T00:00:00Z");
+
+  it("Y는 동의 시각이 되고 비면 미동의다", () => {
+    expect(classifyRow(2, "01000000001", null, null, "Y", NOW).consentAt).toBe(
+      NOW.toISOString(),
+    );
+    expect(
+      classifyRow(2, "01000000001", null, null, null, NOW).consentAt,
+    ).toBeNull();
+  });
+
+  it("모르는 값은 저장하지 않고 고치게 한다", () => {
+    expect(
+      classifyRow(2, "01000000001", null, null, "아마도", NOW),
+    ).toMatchObject({ status: "invalid", consentAt: null });
+  });
+
+  it("시트에서 동의 열을 읽는다", () => {
+    const parsed = rowsFromSheet([
+      ["전화번호", "수신 동의"],
+      ["01000000001", "2026-03-01"],
+      ["01000000002", ""],
+    ]);
+    if (!parsed.ok) throw new Error(parsed.error);
+    expect(parsed.rows[0]?.consentAt).toBe("2026-02-28T15:00:00.000Z");
+    expect(parsed.rows[1]?.consentAt).toBeNull();
   });
 });

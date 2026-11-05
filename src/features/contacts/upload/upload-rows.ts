@@ -1,4 +1,5 @@
 import { normalizePhone } from "@/lib/phone";
+import { cellToConsentText, parseConsent } from "../consent";
 
 /**
  * 엑셀 내용을 저장 가능한 행으로 분류하는 순수 함수. 브라우저(Worker)에서 돌지만 DB 없이 경계값을 시험한다.
@@ -19,6 +20,9 @@ export type UploadRow = {
   phone: string | null;
   name: string | null;
   memo: string | null;
+  /** 파일의 원래 값. 사용자가 번호를 고친 뒤 다시 검사할 때 쓴다. */
+  consentInput: string | null;
+  consentAt: string | null;
   status: UploadRowStatus;
   problem: string | null;
 };
@@ -36,6 +40,16 @@ const PHONE_HEADERS = [
 ];
 const NAME_HEADERS = ["이름", "성명", "고객명", "name"];
 const MEMO_HEADERS = ["메모", "비고", "memo", "note"];
+const CONSENT_HEADERS = [
+  "수신동의",
+  "수신동의일",
+  "수신동의일시",
+  "광고동의",
+  "동의",
+  "동의일",
+  "동의일시",
+  "consent",
+];
 
 function findColumn(headers: readonly string[], candidates: readonly string[]) {
   return headers.findIndex((header) =>
@@ -43,7 +57,12 @@ function findColumn(headers: readonly string[], candidates: readonly string[]) {
   );
 }
 
-export type ColumnMap = { phone: number; name: number; memo: number };
+export type ColumnMap = {
+  phone: number;
+  name: number;
+  memo: number;
+  consent: number;
+};
 
 export function detectColumns(headerRow: readonly unknown[]): ColumnMap | null {
   const headers = headerRow.map((cell) => String(cell ?? ""));
@@ -53,6 +72,7 @@ export function detectColumns(headerRow: readonly unknown[]): ColumnMap | null {
     phone,
     name: findColumn(headers, NAME_HEADERS),
     memo: findColumn(headers, MEMO_HEADERS),
+    consent: findColumn(headers, CONSENT_HEADERS),
   };
 }
 
@@ -78,8 +98,18 @@ export function classifyRow(
   phoneInput: string,
   name: string | null,
   memo: string | null,
+  consentInput: string | null = null,
+  now: Date = new Date(),
 ): UploadRow {
-  const base = { rowNumber, phoneInput, name, memo };
+  const consent = parseConsent(consentInput, now);
+  const base = {
+    rowNumber,
+    phoneInput,
+    name,
+    memo,
+    consentInput,
+    consentAt: consent.ok ? consent.consentAt : null,
+  };
   const phone = normalizePhone(phoneInput);
   if (!phone) {
     return {
@@ -105,6 +135,14 @@ export function classifyRow(
       phone,
       status: "invalid",
       problem: `메모는 ${MAX_MEMO_LENGTH}자까지 쓸 수 있어요`,
+    };
+  }
+  if (!consent.ok) {
+    return {
+      ...base,
+      phone,
+      status: "invalid",
+      problem: "수신 동의는 Y, N 또는 날짜(2026-03-01)로 적어 주세요",
     };
   }
   return { ...base, phone, status: "ok", problem: null };
@@ -185,6 +223,7 @@ export function rowsFromSheet(
         cellToPhoneText(cells[columns.phone]),
         columns.name >= 0 ? cellToText(cells[columns.name]) : null,
         columns.memo >= 0 ? cellToText(cells[columns.memo]) : null,
+        columns.consent >= 0 ? cellToConsentText(cells[columns.consent]) : null,
       ),
     );
   });

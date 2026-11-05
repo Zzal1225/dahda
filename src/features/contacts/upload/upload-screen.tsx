@@ -47,7 +47,13 @@ async function checkOnServer(
   // 앞 단계의 서버 표시를 지우고 다시 판단한다. 수신거부는 그사이 바뀌었을 수 있다.
   const local = markFileDuplicates(
     rows.map((row) =>
-      classifyRow(row.rowNumber, row.phoneInput, row.name, row.memo),
+      classifyRow(
+        row.rowNumber,
+        row.phoneInput,
+        row.name,
+        row.memo,
+        row.consentInput,
+      ),
     ),
   );
   const phones = local.flatMap((row) =>
@@ -248,6 +254,7 @@ export function UploadScreen({
           phone: row.phone,
           name: row.name,
           memo: row.memo,
+          consentAt: row.consentAt,
         })),
       });
       if ("error" in result) {
@@ -316,10 +323,11 @@ export function UploadScreen({
         <p className="text-caption text-text-muted">
           엑셀(.xlsx, .xls), CSV · 5MB ·{" "}
           {MAX_UPLOAD_ROWS.toLocaleString("ko-KR")}행까지. 첫 줄에 전화번호,
-          이름, 메모 머리글이 있어야 해요.
+          이름, 메모, 수신 동의 머리글을 쓸 수 있어요.
         </p>
         <p className="text-caption text-text-muted">
-          수신 동의를 받은 번호만 올려 주세요.
+          수신 동의 칸에는 Y, N 또는 동의한 날짜를 적어 주세요. 비어 있으면
+          미동의로 저장되고 광고 문자에서 빠져요.
         </p>
         <input
           ref={inputRef}

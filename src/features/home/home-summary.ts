@@ -1,7 +1,10 @@
-import {
-  messageCounts,
-  type CampaignRow,
-} from "@/features/campaigns/campaign-view";
+export type TodayTotals = {
+  campaign_count: number;
+  recipient_count: number;
+  delivered: number;
+  pending: number;
+  failed: number;
+};
 
 export type TodaySummary = {
   campaignCount: number;
@@ -14,27 +17,18 @@ export type TodaySummary = {
 };
 
 /**
- * 오늘 숫자. 대기 중인 건은 분모에서 뺀다. 넣으면 발송 도중 도착률이 낮아 보인다.
+ * 합계는 today_campaign_summary가 DB에서 낸다. 여기서는 도착률만 계산한다.
+ * 대기 중인 건은 분모에 없다. 넣으면 발송 도중 도착률이 낮아 보인다.
  * 확인 중은 분모에 넣는다. 빼면 앞서 도착한 몇 건만으로 100%가 나와 결과가 좋아 보인다.
  */
-export function summarizeToday(
-  campaigns: readonly CampaignRow[],
-): TodaySummary {
-  let recipientCount = 0;
-  let delivered = 0;
-  let pending = 0;
-  let failed = 0;
-  for (const campaign of campaigns) {
-    const counts = messageCounts(campaign);
-    recipientCount += campaign.recipientCount;
-    delivered += counts.delivered;
-    pending += counts.sent;
-    failed += counts.failed;
-  }
+export function toTodaySummary(totals: TodayTotals | undefined): TodaySummary {
+  const delivered = totals?.delivered ?? 0;
+  const pending = totals?.pending ?? 0;
+  const failed = totals?.failed ?? 0;
   const accepted = delivered + pending + failed;
   return {
-    campaignCount: campaigns.length,
-    recipientCount,
+    campaignCount: totals?.campaign_count ?? 0,
+    recipientCount: totals?.recipient_count ?? 0,
     delivered,
     pending,
     failed,

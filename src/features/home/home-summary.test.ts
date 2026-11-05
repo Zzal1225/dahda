@@ -1,32 +1,31 @@
 import { describe, expect, it } from "vitest";
-import type { CampaignRow } from "@/features/campaigns/campaign-view";
-import { summarizeToday, timeUntil } from "./home-summary";
+import { timeUntil, toTodaySummary } from "./home-summary";
 
-const campaign = (over: Partial<CampaignRow>): CampaignRow => ({
-  id: "c",
-  branchId: null,
-  branchName: null,
-  body: "본문",
-  kind: "sms",
-  isAd: false,
-  status: "sending",
-  recipientCount: 0,
-  unitPrice: 20,
-  estimatedCost: 0,
-  sentCount: 0,
-  deliveredCount: 0,
-  failedCount: 0,
-  displayAt: "2026-11-05T00:00:00Z",
-  scheduledAt: null,
-  reviewedAt: null,
-  rejectedReason: null,
-  retryOfCampaignId: null,
+const totals = (over = {}) => ({
+  campaign_count: 2,
+  recipient_count: 15,
+  delivered: 13,
+  pending: 0,
+  failed: 2,
   ...over,
 });
 
-describe("summarizeToday", () => {
+describe("toTodaySummary", () => {
   it("발송이 없으면 도착률을 0%가 아니라 없음으로 둔다", () => {
-    expect(summarizeToday([])).toEqual({
+    expect(
+      toTodaySummary(
+        totals({
+          campaign_count: 0,
+          recipient_count: 0,
+          delivered: 0,
+          failed: 0,
+        }),
+      ).deliveryRate,
+    ).toBeNull();
+  });
+
+  it("합계가 없어도 0으로 보여 준다", () => {
+    expect(toTodaySummary(undefined)).toEqual({
       campaignCount: 0,
       recipientCount: 0,
       delivered: 0,
@@ -36,44 +35,29 @@ describe("summarizeToday", () => {
     });
   });
 
-  it("여러 발송 건을 합친다", () => {
-    const summary = summarizeToday([
-      campaign({
-        recipientCount: 10,
-        sentCount: 10,
-        deliveredCount: 8,
-        failedCount: 2,
-      }),
-      campaign({
-        recipientCount: 5,
-        sentCount: 5,
-        deliveredCount: 5,
-      }),
-    ]);
-    expect(summary).toMatchObject({
+  it("합계를 그대로 옮기고 도착률을 계산한다", () => {
+    expect(toTodaySummary(totals())).toEqual({
       campaignCount: 2,
       recipientCount: 15,
       delivered: 13,
       pending: 0,
       failed: 2,
+      deliveryRate: 86.7,
     });
-    expect(summary.deliveryRate).toBe(86.7);
   });
 
-  it("대기 중인 건은 분모에서 빼고 확인 중인 건은 넣는다", () => {
-    const summary = summarizeToday([
-      campaign({ recipientCount: 100, sentCount: 10, deliveredCount: 5 }),
-    ]);
-    expect(summary.pending).toBe(5);
-    expect(summary.deliveryRate).toBe(50);
+  it("확인 중인 건은 분모에 넣는다", () => {
+    expect(
+      toTodaySummary(totals({ delivered: 5, pending: 5, failed: 0 }))
+        .deliveryRate,
+    ).toBe(50);
   });
 
-  it("접수 전에 거절돼도 실패로 센다", () => {
-    const summary = summarizeToday([
-      campaign({ recipientCount: 1, sentCount: 0, failedCount: 1 }),
-    ]);
-    expect(summary.deliveryRate).toBe(0);
-    expect(summary.failed).toBe(1);
+  it("전부 실패하면 0%다", () => {
+    expect(
+      toTodaySummary(totals({ delivered: 0, pending: 0, failed: 1 }))
+        .deliveryRate,
+    ).toBe(0);
   });
 });
 

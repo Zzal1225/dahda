@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import type { CurrentMember } from "@/server/auth/current-member";
 import { HomeLive } from "./home-live";
 import type { HomeData } from "./home-query";
-import { summarizeToday, timeUntil } from "./home-summary";
+import { timeUntil, toTodaySummary } from "./home-summary";
 import { RecentTable } from "./recent-table";
 
 function Card({
@@ -100,7 +100,7 @@ export function HomeScreen({
   now: Date;
 }) {
   const isHq = member.role === "hq";
-  const summary = summarizeToday(data.today);
+  const summary = toTodaySummary(data.today);
   const balanceOf = (branchId: string | null) =>
     data.balances.find((row) => row.branch_id === branchId)?.balance ?? 0;
   const ownBalance = balanceOf(member.branchId);
@@ -132,7 +132,6 @@ export function HomeScreen({
           <span className="text-caption text-text-muted">
             발송 건 {summary.campaignCount}개 · 예약 {data.scheduledCount}건은
             제외
-            {data.todayTruncated && " · 일부만 집계했어요"}
           </span>
         </Card>
         <Card label="오늘 도착률">

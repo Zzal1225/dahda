@@ -34,6 +34,8 @@ export const contactSchema = z.object({
     .max(200, "메모는 200자까지 쓸 수 있어요")
     .nullable()
     .transform((value) => value || null),
+  // 일시가 아니라 여부만 받는다. 시각은 서버가 정해 사용자가 과거 동의를 꾸며 넣을 수 없게 한다.
+  consent: z.boolean().default(false),
   // 체크박스가 하나뿐이면 React Hook Form이 배열 대신 값 하나나 false를 준다. 그룹이 1개인 지점에서 생긴다.
   groupIds: z.preprocess((value) => {
     if (value === false || value === undefined || value === null) return [];

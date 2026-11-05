@@ -51,6 +51,15 @@ const saveSchema = z.object({
         phone: phoneField,
         name: z.string().trim().max(30).nullable(),
         memo: z.string().trim().max(200).nullable(),
+        // 파일에서 읽은 값을 브라우저가 해석해 보낸다. 미래 시각은 서버에서도 거부한다.
+        consentAt: z.iso
+          .datetime()
+          .nullable()
+          .refine(
+            (value) =>
+              value === null ||
+              new Date(value).getTime() <= Date.now() + 60_000,
+          ),
       }),
     )
     .min(1)
@@ -73,8 +82,9 @@ export async function saveUploadBatch(
   const { data, error } = await supabase
     .from("contacts")
     .upsert(
-      parsed.data.rows.map((row) => ({
+      parsed.data.rows.map(({ consentAt, ...row }) => ({
         ...row,
+        consent_at: consentAt,
         org_id: member.orgId,
         branch_id: member.branchId as string,
       })),

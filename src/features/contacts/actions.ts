@@ -56,12 +56,17 @@ export async function createContact(input: unknown): Promise<ActionResult> {
   const member = await requireBranchMember();
   const parsed = contactSchema.safeParse(input);
   if (!parsed.success) return { error: "입력한 내용을 확인해 주세요" };
-  const { groupIds, ...values } = parsed.data;
+  const { groupIds, consent, ...values } = parsed.data;
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("contacts")
-    .insert({ ...values, org_id: member.orgId, branch_id: member.branchId })
+    .insert({
+      ...values,
+      consent_at: consent ? new Date().toISOString() : null,
+      org_id: member.orgId,
+      branch_id: member.branchId,
+    })
     .select("id")
     .single();
   if (error) {
@@ -89,12 +94,12 @@ export async function updateContact(
   if (!id.success || !parsed.success) {
     return { error: "입력한 내용을 확인해 주세요" };
   }
-  const { groupIds, ...values } = parsed.data;
+  const { groupIds, consent, ...values } = parsed.data;
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("contacts")
-    .update(values)
+    .update(consent ? values : { ...values, consent_at: null })
     .eq("id", id.data)
     .select("id");
   if (error) {
@@ -107,6 +112,16 @@ export async function updateContact(
   }
   // RLS가 막으면 오류 없이 0건이다.
   if (data.length === 0) return { error: "연락처를 찾지 못했어요" };
+
+  // 이미 동의한 번호의 시각은 그대로 둔다. 이름만 고쳤는데 동의 시각이 바뀌면 기록의 뜻이 사라진다.
+  if (consent) {
+    const stamped = await supabase
+      .from("contacts")
+      .update({ consent_at: new Date().toISOString() })
+      .eq("id", id.data)
+      .is("consent_at", null);
+    if (stamped.error) return { error: "수신 동의를 저장하지 못했어요" };
+  }
 
   if (!(await replaceGroups(supabase, member, id.data, groupIds))) {
     return { error: "연락처는 고쳤지만 그룹을 바꾸지 못했어요" };

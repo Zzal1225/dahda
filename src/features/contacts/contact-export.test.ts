@@ -11,6 +11,7 @@ const row = (over: Partial<ContactRow>): ContactRow => ({
   phone: "01012345678",
   name: "김손님",
   memo: null,
+  consentAt: null,
   groupIds: [],
   optedOut: false,
   ...over,
@@ -25,10 +26,16 @@ function read(rows: ContactRow[]) {
 
 describe("buildContactWorkbook", () => {
   it("머리글과 값을 순서대로 쓴다", () => {
-    const sheet = read([row({ memo: "단골", optedOut: true })]);
+    const sheet = read([
+      row({
+        memo: "단골",
+        optedOut: true,
+        consentAt: "2026-03-01T00:00:00.000Z",
+      }),
+    ]);
     expect(XLSX.utils.sheet_to_json(sheet, { header: 1 })).toEqual([
-      ["지점", "전화번호", "이름", "메모", "수신거부"],
-      ["성수점", "01012345678", "김손님", "단골", "수신거부"],
+      ["지점", "전화번호", "이름", "메모", "수신거부", "수신 동의"],
+      ["성수점", "01012345678", "김손님", "단골", "수신거부", "2026-03-01"],
     ]);
   });
 
