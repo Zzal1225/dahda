@@ -104,8 +104,20 @@ const CAMPAIGN_STATUS: Record<
   canceled: { label: "취소", tone: "idle" },
 };
 
-export function campaignStatusView(status: CampaignStatus) {
-  return CAMPAIGN_STATUS[status];
+/**
+ * DB의 completed는 "모든 메시지의 결과가 확정됐다"는 뜻일 뿐 성공을 말하지 않는다.
+ * 그대로 "완료"로 보이면 한 통도 안 나간 건이 성공처럼 읽혀서, 표시할 때만 실패 수로 나눈다.
+ * 상태 값을 늘리지 않은 이유: 집계에서 바로 계산되고, 재발송 때 원본 집계는 바뀌지 않아 값이 어긋날 일이 없다.
+ */
+export function campaignStatusView(
+  campaign: Pick<CampaignRow, "status" | "recipientCount" | "failedCount">,
+): { label: string; tone: StatusTone } {
+  if (campaign.status === "completed" && campaign.failedCount > 0) {
+    return campaign.failedCount >= campaign.recipientCount
+      ? { label: "발송 실패", tone: "failed" }
+      : { label: "일부 실패", tone: "failed" };
+  }
+  return CAMPAIGN_STATUS[campaign.status];
 }
 
 /**

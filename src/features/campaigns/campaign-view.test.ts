@@ -119,13 +119,38 @@ describe("campaignCost", () => {
 describe("campaignStatusView", () => {
   it.each<[CampaignStatus, string]>([
     ["sending", "확인 중"],
-    ["completed", "완료"],
     ["scheduled", "예약"],
     ["pending_approval", "승인 대기"],
     ["rejected", "반려"],
     ["canceled", "취소"],
   ])("%s → %s", (status, label) => {
-    expect(campaignStatusView(status).label).toBe(label);
+    expect(
+      campaignStatusView({ status, recipientCount: 10, failedCount: 0 }).label,
+    ).toBe(label);
+  });
+
+  it.each<[number, string, string]>([
+    [0, "완료", "delivered"],
+    [3, "일부 실패", "failed"],
+    [10, "발송 실패", "failed"],
+  ])("완료된 건의 실패 %i건 → %s", (failedCount, label, tone) => {
+    expect(
+      campaignStatusView({
+        status: "completed",
+        recipientCount: 10,
+        failedCount,
+      }),
+    ).toEqual({ label, tone });
+  });
+
+  it("아직 보내는 중이면 실패가 있어도 확인 중이다", () => {
+    expect(
+      campaignStatusView({
+        status: "sending",
+        recipientCount: 10,
+        failedCount: 10,
+      }).label,
+    ).toBe("확인 중");
   });
 });
 

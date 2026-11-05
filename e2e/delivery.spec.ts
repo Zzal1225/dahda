@@ -103,14 +103,16 @@ test.describe("발송 결과", () => {
     await expect(page.getByRole("banner")).toContainText(charged ?? "없음");
   });
 
-  test("모두 실패하면 완료되고 실패분이 돌아온다", async ({ page }) => {
+  test("모두 실패하면 발송 실패로 보이고 실패분이 돌아온다", async ({
+    page,
+  }) => {
     await sendNow(page, "성수점", "실패 확인");
     await expect(page.getByRole("banner")).not.toContainText("₩2,000,000");
 
     await runWorker(1);
 
     await page.reload();
-    await expect(selectedRow(page)).toContainText("완료");
+    await expect(selectedRow(page)).toContainText("발송 실패");
     await expect(page.getByRole("banner")).toContainText("₩2,000,000");
   });
 });

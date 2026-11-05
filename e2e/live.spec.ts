@@ -116,7 +116,9 @@ test.describe("실시간 진행률", () => {
 
     await runWorker(1);
 
-    await expect(selectedRow(page)).toContainText("완료", { timeout: 8000 });
+    await expect(selectedRow(page)).toContainText("발송 실패", {
+      timeout: 8000,
+    });
     await expect(page.getByRole("banner")).toContainText("₩1,310,400", {
       timeout: 15_000,
     });
@@ -144,7 +146,9 @@ test.describe("실패 건 재발송", () => {
     await sendNow(page, "합정점", "재발송 확인");
     await page.waitForTimeout(1000);
     await runWorker(1);
-    await expect(selectedRow(page)).toContainText("완료", { timeout: 8000 });
+    await expect(selectedRow(page)).toContainText("발송 실패", {
+      timeout: 8000,
+    });
 
     const recipients = page.getByRole("table", { name: "수신자별 결과" });
     const checkboxes = recipients.getByRole("checkbox", { name: /\d 선택$/ });
@@ -176,7 +180,7 @@ test.describe("실패 건 재발송", () => {
 
     // 원본으로 돌아가 같은 행을 고르면 이미 보낸 건이라 대상이 없다.
     await rows.nth(1).click();
-    await expect(selectedRow(page)).toContainText("완료");
+    await expect(selectedRow(page)).toContainText("발송 실패");
     await page
       .getByRole("table", { name: "수신자별 결과" })
       .getByRole("checkbox", { name: firstLabel, exact: true })
