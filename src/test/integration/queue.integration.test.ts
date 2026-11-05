@@ -283,6 +283,14 @@ describe("runWorkerTick", () => {
     expect(new Date(row?.next_attempt_at ?? 0).toISOString()).toBe(
       "2026-11-04T23:00:00.000Z",
     );
+    // 고정 시각 기준의 8시는 실제 시간으로 이미 지난 과거다. 남기면 다음 테스트가 이 행을 집는다.
+    must(
+      await service
+        .from("messages")
+        .delete()
+        .eq("campaign_id", id)
+        .select("id"),
+    );
   });
 
   it("웹훅이 저장보다 먼저 와도 최종 상태를 되돌리지 않는다", async () => {
