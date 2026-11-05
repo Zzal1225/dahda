@@ -2,8 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createGuardedProvider,
   parseAllowedRecipients,
+  usesRealDemo,
   usesRealProvider,
+  allowDemoRequest,
+  allowRecipients,
 } from "./guarded-provider";
+import { byteLength, SMS_MAX_BYTES } from "@/features/campaigns/campaignSchema";
+import { DEMO_SMS_BODY } from "./demo-sms";
 import type { SendRequest, SendResult, SmsProvider } from "./sms-provider";
 
 const MINE = "01011112222";
@@ -40,7 +45,7 @@ function setup(
       verifySignature: async () => true,
     } satisfies SmsProvider,
     {
-      allowedRecipients: new Set([MINE]),
+      isAllowed: allowRecipients(new Set([MINE])),
       dailyLimit: options.limit ?? 10,
       reserve,
     },
@@ -86,7 +91,7 @@ describe("허용 번호", () => {
         verifySignature: async () => true,
       },
       {
-        allowedRecipients: parseAllowedRecipients(undefined),
+        isAllowed: allowRecipients(parseAllowedRecipients(undefined)),
         dailyLimit: 10,
         reserve: async (count) => count,
       },
@@ -148,5 +153,49 @@ describe("usesRealProvider", () => {
     [true, undefined, false],
   ])("체험 %s, 설정 %s → %s", (isTrial, smsProvider, expected) => {
     expect(usesRealProvider({ isTrial, smsProvider })).toBe(expected);
+  });
+});
+
+describe("allowDemoRequest", () => {
+  const SENDER = "01012345678";
+  const request: SendRequest = {
+    idempotencyKey: "k",
+    to: "01099998888",
+    from: SENDER,
+    body: DEMO_SMS_BODY,
+    kind: "sms",
+  };
+
+  it("고정 본문과 지정 발신번호면 허용 목록 없이 보낸다", () => {
+    expect(allowDemoRequest(SENDER)(request)).toBe(true);
+  });
+
+  it.each<[string, Partial<SendRequest>]>([
+    ["다른 본문", { body: "아무 내용" }],
+    ["다른 발신번호", { from: "01000000000" }],
+    ["LMS", { kind: "lms" }],
+    ["휴대전화가 아닌 수신번호", { to: "0212345678" }],
+  ])("%s는 막는다", (_, change) => {
+    expect(allowDemoRequest(SENDER)({ ...request, ...change })).toBe(false);
+  });
+
+  it("발신번호 설정이 없으면 닫힌다", () => {
+    expect(allowDemoRequest(undefined)(request)).toBe(false);
+    expect(allowDemoRequest("")({ ...request, from: "" })).toBe(false);
+  });
+
+  it("고정 본문은 SMS 한 건에 들어간다", () => {
+    expect(byteLength(DEMO_SMS_BODY)).toBeLessThanOrEqual(SMS_MAX_BYTES);
+  });
+});
+
+describe("usesRealDemo", () => {
+  it.each<[boolean, string | undefined, boolean]>([
+    [true, "solapi", true],
+    [true, "fake", false],
+    [true, undefined, false],
+    [false, "solapi", false],
+  ])("플래그 %s, 설정 %s → %s", (isRealDemo, smsProvider, expected) => {
+    expect(usesRealDemo({ isRealDemo, smsProvider })).toBe(expected);
   });
 });

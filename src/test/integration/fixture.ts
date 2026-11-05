@@ -332,6 +332,14 @@ export async function createFixture() {
       .select("day"),
   );
 
+  // 정책이 없어 어떤 사용자에게도 보이지 않아야 한다. RLS 검사가 "행이 없어서 안 보임"이 되지 않게 넣는다.
+  must(
+    await service
+      .from("demo_sends")
+      .insert({ user_id: randomUUID(), phone_hash: randomUUID() })
+      .select("user_id"),
+  );
+
   const tokens = new Map<keyof typeof users, string>();
 
   return {

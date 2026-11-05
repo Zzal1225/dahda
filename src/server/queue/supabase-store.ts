@@ -65,6 +65,7 @@ export function createSupabaseQueueStore(
         senderPhone: row.sender_phone,
         isAd: row.is_ad,
         isTrial: row.is_trial,
+        isRealDemo: row.is_real_demo,
       }));
     },
 

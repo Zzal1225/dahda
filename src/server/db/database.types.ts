@@ -45,14 +45,14 @@ isOneToOne: false
                   ]
                 },"campaigns": {
                   Row: {
-                    "body": string,"branch_id": string | null,"client_request_id": string | null,"completed_at": string | null,"created_at": string,"created_by": string | null,"delivered_count": number,"estimated_cost": number,"failed_count": number,"id": string,"is_ad": boolean,"kind": Database["public"]['Enums']["campaign_kind"],"org_id": string,"recipient_count": number,"rejected_reason": string | null,"requested_at": string | null,"retry_of_campaign_id": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"scheduled_at": string | null,"sender_phone": string | null,"sent_count": number,"started_at": string | null,"status": Database["public"]['Enums']["campaign_status"],"unit_price": number,"updated_at": string
+                    "body": string,"branch_id": string | null,"client_request_id": string | null,"completed_at": string | null,"created_at": string,"created_by": string | null,"delivered_count": number,"estimated_cost": number,"failed_count": number,"id": string,"is_ad": boolean,"is_real_demo": boolean,"kind": Database["public"]['Enums']["campaign_kind"],"org_id": string,"recipient_count": number,"rejected_reason": string | null,"requested_at": string | null,"retry_of_campaign_id": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"scheduled_at": string | null,"sender_phone": string | null,"sent_count": number,"started_at": string | null,"status": Database["public"]['Enums']["campaign_status"],"unit_price": number,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body"?: string,"branch_id"?: string | null,"client_request_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"delivered_count"?: number,"estimated_cost"?: number,"failed_count"?: number,"id"?: string,"is_ad"?: boolean,"kind"?: Database["public"]['Enums']["campaign_kind"],"org_id": string,"recipient_count"?: number,"rejected_reason"?: string | null,"requested_at"?: string | null,"retry_of_campaign_id"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"scheduled_at"?: string | null,"sender_phone"?: string | null,"sent_count"?: number,"started_at"?: string | null,"status"?: Database["public"]['Enums']["campaign_status"],"unit_price"?: number,"updated_at"?: string
+                    "body"?: string,"branch_id"?: string | null,"client_request_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"delivered_count"?: number,"estimated_cost"?: number,"failed_count"?: number,"id"?: string,"is_ad"?: boolean,"is_real_demo"?: boolean,"kind"?: Database["public"]['Enums']["campaign_kind"],"org_id": string,"recipient_count"?: number,"rejected_reason"?: string | null,"requested_at"?: string | null,"retry_of_campaign_id"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"scheduled_at"?: string | null,"sender_phone"?: string | null,"sent_count"?: number,"started_at"?: string | null,"status"?: Database["public"]['Enums']["campaign_status"],"unit_price"?: number,"updated_at"?: string
                   }
                   Update: {
-                    "body"?: string,"branch_id"?: string | null,"client_request_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"delivered_count"?: number,"estimated_cost"?: number,"failed_count"?: number,"id"?: string,"is_ad"?: boolean,"kind"?: Database["public"]['Enums']["campaign_kind"],"org_id"?: string,"recipient_count"?: number,"rejected_reason"?: string | null,"requested_at"?: string | null,"retry_of_campaign_id"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"scheduled_at"?: string | null,"sender_phone"?: string | null,"sent_count"?: number,"started_at"?: string | null,"status"?: Database["public"]['Enums']["campaign_status"],"unit_price"?: number,"updated_at"?: string
+                    "body"?: string,"branch_id"?: string | null,"client_request_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"delivered_count"?: number,"estimated_cost"?: number,"failed_count"?: number,"id"?: string,"is_ad"?: boolean,"is_real_demo"?: boolean,"kind"?: Database["public"]['Enums']["campaign_kind"],"org_id"?: string,"recipient_count"?: number,"rejected_reason"?: string | null,"requested_at"?: string | null,"retry_of_campaign_id"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"scheduled_at"?: string | null,"sender_phone"?: string | null,"sent_count"?: number,"started_at"?: string | null,"status"?: Database["public"]['Enums']["campaign_status"],"unit_price"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -152,6 +152,20 @@ isOneToOne: false
       referencedRelation: "organizations"
       referencedColumns: ["id"]
     }
+                  ]
+                },"demo_sends": {
+                  Row: {
+                    "created_at": string,"phone_hash": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"phone_hash": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"phone_hash"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"ledger_entries": {
                   Row: {
@@ -388,7 +402,7 @@ isOneToOne: false
                            },
 "claim_messages":
 { Args: { "p_lease_seconds": number,"p_limit": number }; Returns: {
-              "attempt_count": number,"body": string,"campaign_id": string,"campaign_status": Database["public"]['Enums']["campaign_status"],"id": number,"idempotency_key": string,"is_ad": boolean,"is_trial": boolean,"kind": Database["public"]['Enums']["campaign_kind"],"phone": string,"sender_phone": string
+              "attempt_count": number,"body": string,"campaign_id": string,"campaign_status": Database["public"]['Enums']["campaign_status"],"id": number,"idempotency_key": string,"is_ad": boolean,"is_real_demo": boolean,"is_trial": boolean,"kind": Database["public"]['Enums']["campaign_kind"],"phone": string,"sender_phone": string
             }[]
                            },
 "complete_campaign":
@@ -422,6 +436,9 @@ isOneToOne: false
                            },
 "retry_failed_messages":
 { Args: { "p_created_by": string,"p_message_ids": (number)[],"p_org_id": string,"p_source_id": string }; Returns: string
+                           },
+"start_demo_send":
+{ Args: { "p_body": string,"p_branch_id": string,"p_daily_limit": number,"p_org_id": string,"p_phone": string,"p_sender_phone": unknown,"p_unit_price": number,"p_user_id": string }; Returns: string
                            },
 "submit_campaign":
 { Args: { "p_body": string,"p_branch_id": string,"p_client_request_id": string,"p_created_by": string,"p_is_ad": boolean,"p_kind": Database["public"]['Enums']["campaign_kind"],"p_org_id": string,"p_recipients": Json,"p_scheduled_at": string,"p_sender_phone": unknown,"p_status": Database["public"]['Enums']["campaign_status"],"p_unit_price": number }; Returns: string

@@ -2,7 +2,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Database } from "@/server/db/database.types";
-import { createGuardedProvider } from "@/server/providers/guarded-provider";
+import {
+  allowRecipients,
+  createGuardedProvider,
+} from "@/server/providers/guarded-provider";
 import { createSolapiProvider } from "@/server/providers/solapi/solapi-provider";
 import { createSupabaseQueueStore } from "@/server/queue/supabase-store";
 import { runWorkerTick } from "@/server/queue/worker";
@@ -122,7 +125,7 @@ describe("솔라피 어댑터 전체 경로", () => {
         },
       }),
       {
-        allowedRecipients: new Set(["01011112222"]),
+        isAllowed: allowRecipients(new Set(["01011112222"])),
         dailyLimit: 10,
         reserve,
       },

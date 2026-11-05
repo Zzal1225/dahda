@@ -5,6 +5,9 @@ import { createFakeProvider } from "../../../src/server/providers/fake/fake-prov
 import {
   createGuardedProvider,
   parseAllowedRecipients,
+  allowDemoRequest,
+  allowRecipients,
+  usesRealDemo,
   usesRealProvider,
 } from "../../../src/server/providers/guarded-provider.ts";
 import { createSolapiClient } from "../../../src/server/providers/solapi/solapi-client.ts";
@@ -82,42 +85,60 @@ Deno.serve(async (request) => {
 
     const smsProvider = Deno.env.get("SMS_PROVIDER");
     // 필요할 때만 만든다. 키가 없는 환경에서 체험 계정 발송까지 막히면 안 된다.
+    let solapi: SmsProvider | undefined;
+    const solapiProvider = () => {
+      solapi ??= createSolapiProvider({
+        webhookSecret: required("SOLAPI_WEBHOOK_SECRET"),
+        client: createSolapiClient(
+          required("SOLAPI_API_KEY"),
+          required("SOLAPI_API_SECRET"),
+        ),
+      });
+      return solapi;
+    };
+    // 두 경로가 같은 카운터를 쓴다. 경로가 늘어도 하루에 나가는 실제 문자의 총량은 늘지 않는다.
+    const guard = {
+      dailyLimit: Number(
+        Deno.env.get("SOLAPI_DAILY_LIMIT") ?? DEFAULT_DAILY_LIMIT,
+      ),
+      reserve: async (count: number, limit: number) => {
+        const { data, error } = await supabase.rpc("reserve_real_sends", {
+          p_count: count,
+          p_limit: limit,
+        });
+        if (error) throw error;
+        return data;
+      },
+    };
     let real: SmsProvider | undefined;
     const realProvider = () => {
-      real ??= createGuardedProvider(
-        createSolapiProvider({
-          webhookSecret: required("SOLAPI_WEBHOOK_SECRET"),
-          client: createSolapiClient(
-            required("SOLAPI_API_KEY"),
-            required("SOLAPI_API_SECRET"),
-          ),
-        }),
-        {
-          allowedRecipients: parseAllowedRecipients(
-            Deno.env.get("SOLAPI_ALLOWED_RECIPIENTS"),
-          ),
-          dailyLimit: Number(
-            Deno.env.get("SOLAPI_DAILY_LIMIT") ?? DEFAULT_DAILY_LIMIT,
-          ),
-          reserve: async (count, limit) => {
-            const { data, error } = await supabase.rpc("reserve_real_sends", {
-              p_count: count,
-              p_limit: limit,
-            });
-            if (error) throw error;
-            return data;
-          },
-        },
-      );
+      real ??= createGuardedProvider(solapiProvider(), {
+        ...guard,
+        isAllowed: allowRecipients(
+          parseAllowedRecipients(Deno.env.get("SOLAPI_ALLOWED_RECIPIENTS")),
+        ),
+      });
       return real;
+    };
+    let demo: SmsProvider | undefined;
+    const demoProvider = () => {
+      demo ??= createGuardedProvider(solapiProvider(), {
+        ...guard,
+        isAllowed: allowDemoRequest(Deno.env.get("DEMO_SENDER_NUMBER")),
+      });
+      return demo;
     };
 
     const summary = await runWorkerTick({
       store: createSupabaseQueueStore(supabase),
-      providerFor: (message) =>
-        usesRealProvider({ isTrial: message.isTrial, smsProvider })
+      providerFor: (message) => {
+        if (usesRealDemo({ isRealDemo: message.isRealDemo, smsProvider })) {
+          return demoProvider();
+        }
+        return usesRealProvider({ isTrial: message.isTrial, smsProvider })
           ? realProvider()
-          : fake,
+          : fake;
+      },
       batchSize: Number(Deno.env.get("SEND_BATCH_SIZE") ?? DEFAULT_BATCH_SIZE),
       leaseSeconds: LEASE_SECONDS,
     });

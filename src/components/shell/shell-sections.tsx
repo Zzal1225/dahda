@@ -1,6 +1,8 @@
 import { Info, Store } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTrialRoleOptions } from "@/features/auth/trial-role-options";
+import { demoSenderNumber } from "@/features/demo/demo-config";
 import { getOwnBalance } from "@/features/billing/balance";
 import { countApprovals } from "@/features/campaigns/approval-query";
 import { formatWon, isLowBalance } from "@/lib/format";
@@ -32,7 +34,12 @@ export async function TrialBanner() {
         className="size-3.5 text-status-pending"
         strokeWidth={2}
       />
-      체험 계정이에요. 실제 문자는 나가지 않아요
+      체험 계정이에요. 문자 작성은 가짜 발송기로 처리돼요
+      {demoSenderNumber() && (
+        <Link href="/demo-sms" className="font-bold underline">
+          실제 문자 받아 보기
+        </Link>
+      )}
     </div>
   );
 }
