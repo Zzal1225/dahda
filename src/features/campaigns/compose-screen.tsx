@@ -162,7 +162,7 @@ export function ComposeScreen({
     : 0;
 
   // 선택이 바뀔 때마다 서버에서 실제 수신자 수를 다시 센다. 저장과 같은 계산이어야 숫자를 믿을 수 있다.
-  const selectionKey = JSON.stringify([groupIds, contactIds]);
+  const selectionKey = JSON.stringify([groupIds, contactIds, isAd]);
   useEffect(() => {
     let current = true;
     const timer = setTimeout(() => {
@@ -170,7 +170,7 @@ export function ComposeScreen({
         if (current) setSummary(null);
         return;
       }
-      void previewRecipients({ groupIds, contactIds }).then((result) => {
+      void previewRecipients({ groupIds, contactIds, isAd }).then((result) => {
         if (current && !("error" in result)) setSummary(result);
       });
     }, 200);
@@ -361,6 +361,8 @@ export function ComposeScreen({
                   총 <b>{total.toLocaleString("ko-KR")}명</b>
                   {summary.optedOut > 0 &&
                     ` · 수신거부 ${summary.optedOut.toLocaleString("ko-KR")}명 제외`}
+                  {summary.noConsent > 0 &&
+                    ` · 미동의 ${summary.noConsent.toLocaleString("ko-KR")}명 제외`}
                   {summary.duplicates > 0 &&
                     ` · 중복 ${summary.duplicates.toLocaleString("ko-KR")}명 제외`}
                 </>
@@ -369,7 +371,8 @@ export function ComposeScreen({
               )}
             </div>
             <p className="text-caption text-text-muted">
-              광고 문자는 수신 동의를 받은 번호에만 보낼 수 있어요.
+              광고 문자는 수신 동의를 받은 번호에만 나가요. 미동의 번호는
+              자동으로 빠져요.
             </p>
           </Section>
 

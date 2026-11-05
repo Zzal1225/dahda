@@ -16,6 +16,7 @@ describe("contactSchema", () => {
       phone: "01000000001",
       name: null,
       memo: null,
+      consent: false,
       groupIds: [GROUP],
     });
   });

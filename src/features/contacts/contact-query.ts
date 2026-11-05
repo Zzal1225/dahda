@@ -21,6 +21,7 @@ export type ContactRow = {
   phone: string;
   name: string | null;
   memo: string | null;
+  consentAt: string | null;
   groupIds: string[];
   optedOut: boolean;
 };
@@ -53,9 +54,12 @@ export async function listContacts(
 
   let request = supabase
     .from("contacts")
-    .select(`id, branch_id, phone, name, memo, branches(name), ${groupEmbed}`, {
-      count: "exact",
-    });
+    .select(
+      `id, branch_id, phone, name, memo, consent_at, branches(name), ${groupEmbed}`,
+      {
+        count: "exact",
+      },
+    );
 
   if (filters.branch) request = request.eq("branch_id", filters.branch);
   if (filters.group) {
@@ -83,6 +87,7 @@ export async function listContacts(
         phone: string;
         name: string | null;
         memo: string | null;
+        consent_at: string | null;
         branches: { name: string } | null;
         contact_group_members: { group_id: string }[];
       }[]
@@ -107,6 +112,7 @@ export async function listContacts(
       phone: row.phone,
       name: row.name,
       memo: row.memo,
+      consentAt: row.consent_at,
       groupIds: row.contact_group_members.map((member) => member.group_id),
       optedOut: optedOut.has(row.phone),
     })),

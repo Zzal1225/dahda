@@ -3,7 +3,7 @@ import type { ContactRow } from "./contact-query";
 
 /** 내보내기 상한. 메모리에서 한 번에 만들므로 넘으면 조건을 좁히게 한다. */
 export const MAX_EXPORT_ROWS = 100_000;
-const HEADER = ["지점", "전화번호", "이름", "메모", "수신거부"];
+const HEADER = ["지점", "전화번호", "이름", "메모", "수신거부", "수신 동의"];
 
 /**
  * 모든 값을 글자로 쓴다. 숫자로 넣으면 010의 0이 사라진다.
@@ -19,6 +19,7 @@ export function buildContactWorkbook(rows: readonly ContactRow[]): Buffer {
       row.name ?? "",
       row.memo ?? "",
       row.optedOut ? "수신거부" : "",
+      row.consentAt ? row.consentAt.slice(0, 10) : "",
     ]),
   ]);
   const book = XLSX.utils.book_new();

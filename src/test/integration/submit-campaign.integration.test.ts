@@ -304,6 +304,7 @@ describe("resolveRecipients", () => {
       await asUser("branch1"),
       [groupA, groupB],
       [],
+      { isAd: false },
     );
     expect(result.recipients.map((r) => r.phone).sort()).toEqual([
       "01000008001",
@@ -317,6 +318,7 @@ describe("resolveRecipients", () => {
       await asUser("branch1"),
       [groupA],
       [contactIds[0] ?? ""],
+      { isAd: false },
     );
     expect(result.recipients).toHaveLength(2);
     expect(result.duplicates).toBe(1);
@@ -327,6 +329,7 @@ describe("resolveRecipients", () => {
       await asUser("branch2"),
       [groupA],
       contactIds,
+      { isAd: false },
     );
     expect(result.recipients).toEqual([]);
   });

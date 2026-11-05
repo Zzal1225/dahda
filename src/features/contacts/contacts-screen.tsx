@@ -79,7 +79,13 @@ function buildColumns(
           <span className="rounded-sm border border-danger px-1 text-caption font-bold text-danger">
             수신거부
           </span>
-        ) : null,
+        ) : row.original.consentAt ? (
+          <span className="text-caption text-text-muted">동의</span>
+        ) : (
+          <span className="text-caption font-bold text-status-pending">
+            미동의
+          </span>
+        ),
     }),
   ];
 

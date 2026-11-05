@@ -222,3 +222,28 @@ test.describe("수신거부", () => {
     expect(page.url()).not.toBe(HOME);
   });
 });
+
+test("연락처 창에서 수신 동의를 켜고 끌 수 있다", async ({ page }) => {
+  await startTrial(page);
+  await switchToBranch(page, "성수점");
+  await page.goto("/contacts?q=010-9999");
+  const phone = `010-9999-${String(Math.floor(Math.random() * 10_000)).padStart(4, "0")}`;
+
+  await page.getByRole("button", { name: "연락처 추가" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("전화번호").fill(phone);
+  await dialog.getByRole("button", { name: "추가" }).click();
+  await expect(dialog).toHaveCount(0);
+  const row = page.getByRole("row").filter({ hasText: phone });
+  await expect(row.getByText("미동의")).toBeVisible();
+
+  await row.getByRole("button", { name: /수정/ }).click();
+  await page
+    .getByRole("checkbox", { name: "광고 수신 동의를 받았어요" })
+    .check();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /저장|수정/ })
+    .click();
+  await expect(row.getByText("동의", { exact: true })).toBeVisible();
+});

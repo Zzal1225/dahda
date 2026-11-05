@@ -129,14 +129,14 @@ isOneToOne: false
                   ]
                 },"contacts": {
                   Row: {
-                    "branch_id": string,"created_at": string,"id": string,"memo": string | null,"name": string | null,"org_id": string,"phone": string,"updated_at": string
+                    "branch_id": string,"consent_at": string | null,"created_at": string,"id": string,"memo": string | null,"name": string | null,"org_id": string,"phone": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "branch_id": string,"created_at"?: string,"id"?: string,"memo"?: string | null,"name"?: string | null,"org_id": string,"phone": string,"updated_at"?: string
+                    "branch_id": string,"consent_at"?: string | null,"created_at"?: string,"id"?: string,"memo"?: string | null,"name"?: string | null,"org_id": string,"phone": string,"updated_at"?: string
                   }
                   Update: {
-                    "branch_id"?: string,"created_at"?: string,"id"?: string,"memo"?: string | null,"name"?: string | null,"org_id"?: string,"phone"?: string,"updated_at"?: string
+                    "branch_id"?: string,"consent_at"?: string | null,"created_at"?: string,"id"?: string,"memo"?: string | null,"name"?: string | null,"org_id"?: string,"phone"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -417,6 +417,9 @@ isOneToOne: false
 "create_trial_org_base":
 { Args: { "p_user_id": string }; Returns: string
                            },
+"create_trial_org_before_consent":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
 "create_trial_org_with_contacts":
 { Args: { "p_user_id": string }; Returns: string
                            },
@@ -451,6 +454,11 @@ isOneToOne: false
                            },
 "switch_trial_role":
 { Args: { "p_branch_id": string,"p_user_id": string }; Returns: undefined
+                           },
+"today_campaign_summary":
+{ Args: { "p_from": string }; Returns: {
+              "campaign_count": number,"delivered": number,"failed": number,"pending": number,"recipient_count": number
+            }[]
                            }
           }
           Enums: {

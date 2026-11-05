@@ -2,11 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/server/db/database.types";
 
 export type Recipient = { phone: string; name: string | null };
+type PickedContact = Recipient & { consent_at: string | null };
 
 export type ResolvedRecipients = {
   recipients: Recipient[];
   optedOut: number;
   duplicates: number;
+  /** 광고일 때만 센다. 일반 문자는 동의가 필요하지 않아 항상 0이다. */
+  noConsent: number;
 };
 
 const PAGE = 1_000;
@@ -37,14 +40,15 @@ export async function resolveRecipients(
   supabase: Client,
   groupIds: readonly string[],
   contactIds: readonly string[],
+  options: { isAd: boolean },
 ): Promise<ResolvedRecipients> {
-  const picked: Recipient[] = [];
+  const picked: PickedContact[] = [];
 
   if (groupIds.length > 0) {
     const rows = await readAll((from, to) =>
       supabase
         .from("contact_group_members")
-        .select("contact_id, contacts(phone, name)")
+        .select("contact_id, contacts(phone, name, consent_at)")
         .in("group_id", [...groupIds])
         .order("contact_id")
         .order("group_id")
@@ -58,7 +62,7 @@ export async function resolveRecipients(
   for (let start = 0; start < contactIds.length; start += IN_CHUNK) {
     const { data, error } = await supabase
       .from("contacts")
-      .select("phone, name")
+      .select("phone, name, consent_at")
       .in("id", contactIds.slice(start, start + IN_CHUNK));
     if (error) throw new Error(`수신자 조회 실패: ${error.message}`);
     picked.push(...data);
@@ -69,12 +73,20 @@ export async function resolveRecipients(
   );
   const optedOutPhones = new Set(optOuts.map((row) => row.phone));
 
+  // 같은 번호가 여러 지점에 있으면 동의도 각각이다. 하나라도 없으면 제외한다.
+  // 한 지점에 한 동의를 다른 지점의 광고에 쓰면 동의 없는 발송이 될 수 있어 좁은 쪽을 택한다.
+  const missingConsent = new Set(
+    picked.filter((row) => !row.consent_at).map((row) => row.phone),
+  );
+
   // 여러 그룹이나 지점에 같은 번호가 있어도 한 번만 보낸다. 두 번 보내면 두 번 차감된다.
   const seen = new Set<string>();
   const recipients: Recipient[] = [];
   let optedOut = 0;
   let duplicates = 0;
-  for (const recipient of picked) {
+  let noConsent = 0;
+  for (const { phone, name } of picked) {
+    const recipient = { phone, name };
     if (seen.has(recipient.phone)) {
       duplicates += 1;
       continue;
@@ -85,7 +97,12 @@ export async function resolveRecipients(
       optedOut += 1;
       continue;
     }
+    // 법 제50조 제1항: 광고는 사전 동의를 받은 사람에게만 보낸다. 일반 문자에는 적용하지 않는다.
+    if (options.isAd && missingConsent.has(recipient.phone)) {
+      noConsent += 1;
+      continue;
+    }
     recipients.push(recipient);
   }
-  return { recipients, optedOut, duplicates };
+  return { recipients, optedOut, duplicates, noConsent };
 }

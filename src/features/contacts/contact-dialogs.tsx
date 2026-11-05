@@ -96,6 +96,7 @@ export function ContactDialog({
       phone: contact ? formatPhone(contact.phone) : "",
       name: contact?.name ?? "",
       memo: contact?.memo ?? "",
+      consent: Boolean(contact?.consentAt),
       groupIds: contact?.groupIds ?? [],
     });
     setError(undefined);
@@ -143,6 +144,14 @@ export function ContactDialog({
               error={errors.memo}
               registration={register("memo")}
             />
+            <label className="flex cursor-pointer items-center gap-1.5 text-body-sm">
+              <input
+                type="checkbox"
+                className="size-4 accent-primary"
+                {...register("consent")}
+              />
+              광고 수신 동의를 받았어요
+            </label>
             {groups.length > 0 && (
               <fieldset className="flex flex-col gap-1.5">
                 <legend className="text-body-sm font-bold">그룹</legend>

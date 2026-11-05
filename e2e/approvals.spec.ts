@@ -72,7 +72,7 @@ test.describe("승인함", () => {
     await expect(page.getByText("승인을 기다리는 문자가 없어요")).toBeVisible();
 
     await switchTo(page, "지점 · 성수점");
-    await expect(page.getByRole("banner")).toContainText("₩1,999,400");
+    await expect(page.getByRole("banner")).toContainText("₩1,999,520");
     await page.goto("/history");
     await page
       .getByRole("table", { name: "발송 건" })

@@ -212,3 +212,39 @@ test.describe("문자 작성", () => {
     await expect(send).toBeEnabled();
   });
 });
+
+test.describe("광고 수신 동의", () => {
+  test("광고를 켜면 미동의 번호를 빼고 숫자를 다시 센다", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
+    await expect(page.getByRole("note")).toBeVisible();
+    await page.getByRole("button", { name: /역할 전환/ }).click();
+    await page.getByRole("menuitemradio", { name: "지점 · 성수점" }).click();
+    await expect(page.getByRole("banner")).toContainText("성수점");
+    await page.goto("/compose");
+    await page.getByRole("checkbox", { name: /단골 손님/ }).check();
+
+    const summary = page.getByRole("status").filter({ hasText: "총" });
+    await expect(summary).toContainText("총 30명");
+    await expect(summary).not.toContainText("미동의");
+
+    await page.getByRole("switch", { name: "광고 문자예요" }).check();
+    await expect(summary).toContainText("총 24명");
+    await expect(summary).toContainText("미동의 6명 제외");
+
+    await page.getByRole("switch", { name: "광고 문자예요" }).uncheck();
+    await expect(summary).toContainText("총 30명");
+  });
+
+  test("주소록의 수신 열에 동의 여부가 보인다", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
+    await expect(page.getByRole("note")).toBeVisible();
+    await page.goto("/contacts");
+    const table = page.getByRole("table").first();
+    await expect(
+      table.getByText("동의", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(table.getByText("미동의").first()).toBeVisible();
+  });
+});
