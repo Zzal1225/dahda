@@ -9,7 +9,7 @@ test.describe("실제 문자 받아 보기", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
-    await page.getByRole("link", { name: "실제 문자 받아 보기" }).click();
+    await page.getByRole("link", { name: "실제로 문자 발송하기" }).click();
     await expect(page).toHaveURL(/\/demo-sms/);
   });
 

@@ -14,7 +14,7 @@ test.describe("체험하기", () => {
 
     await expect(page).toHaveURL("http://127.0.0.1:3000/");
     await expect(page.getByRole("note")).toContainText(
-      "문자 작성은 가짜 발송기로 처리돼요",
+      "문자 발송은 가짜 발송기로 처리돼요",
     );
     const header = page.getByRole("banner");
     await expect(header).toContainText("전체 지점");

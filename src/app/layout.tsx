@@ -1,10 +1,29 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const TITLE = "dahda · 문자가 닿았는지까지 확인하는 발송 콘솔";
+const DESCRIPTION =
+  "마트·소상공인이 손님에게 문자를 보내고, 도착 결과까지 확인하는 B2B 문자 발송 관리자 콘솔. 로그인 없이 체험할 수 있어요.";
+
 export const metadata: Metadata = {
+  // 미리보기 이미지는 절대 주소여야 한다. 메신저와 SNS는 상대 경로를 읽지 못한다.
+  metadataBase: new URL("https://dahda-xi.vercel.app"),
   title: "dahda",
-  description:
-    "문자가 닿았는지까지 확인하는 마트·소상공인용 문자 발송 관리자 콘솔",
+  description: DESCRIPTION,
+  // 이미지는 같은 폴더의 opengraph-image.png를 Next.js가 자동으로 넣는다.
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "/",
+    siteName: "dahda",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

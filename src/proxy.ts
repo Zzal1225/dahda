@@ -58,7 +58,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // 웹훅은 업체가 부르므로 세션이 없고, 정적 파일은 인증이 필요 없다.
+  // 미리보기 이미지를 빼지 않으면 로그인 화면으로 넘어가 메신저에 이미지가 보이지 않는다.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/webhooks|api/payments/webhook).*)",
+    "/((?!_next/static|_next/image|favicon.ico|opengraph-image|api/webhooks|api/payments/webhook).*)",
   ],
 };

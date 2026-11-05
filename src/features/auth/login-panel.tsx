@@ -43,6 +43,26 @@ export function LoginPanel() {
         </p>
       </div>
 
+      {/* 방문자 대부분은 채용 담당자라 가입하지 않는다. 체험을 먼저, 크게 둔다. */}
+      <div className="flex flex-col gap-2">
+        <Button
+          onClick={beginTrial}
+          disabled={pending}
+          className="h-12 text-[15px]"
+        >
+          로그인 없이 체험하기
+        </Button>
+        <p className="text-center text-caption text-text-muted">
+          샘플 데이터예요. 실제 문자는 번호를 직접 넣을 때만 나가요
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3 text-caption text-text-muted">
+        <span aria-hidden className="h-px flex-1 bg-border" />
+        이미 계정이 있다면
+        <span aria-hidden className="h-px flex-1 bg-border" />
+      </div>
+
       <form
         onSubmit={handleSubmit(submit)}
         noValidate
@@ -92,25 +112,17 @@ export function LoginPanel() {
           </p>
         )}
 
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" variant="secondary" disabled={pending}>
           로그인
         </Button>
       </form>
 
-      <div className="flex flex-col gap-2 border-t border-border pt-6">
-        <Button variant="secondary" onClick={beginTrial} disabled={pending}>
-          로그인 없이 체험하기
-        </Button>
-        <p className="text-center text-caption text-text-muted">
-          샘플 데이터예요. 실제 문자는 번호를 직접 넣을 때만 나가요
-        </p>
-        <Link
-          href="/privacy"
-          className="text-center text-caption text-text-muted underline"
-        >
-          개인정보처리방침
-        </Link>
-      </div>
+      <Link
+        href="/privacy"
+        className="text-center text-caption text-text-muted underline"
+      >
+        개인정보처리방침
+      </Link>
     </div>
   );
 }

@@ -27,17 +27,17 @@ export async function TrialBanner() {
   return (
     <div
       role="note"
-      className="flex h-8 flex-none items-center justify-center gap-2 border-b border-border bg-surface-3 text-caption font-bold"
+      className="flex min-h-8 flex-none flex-wrap items-center justify-center gap-x-2 border-b border-border bg-surface-3 px-4 py-1 text-center text-caption font-bold [word-break:keep-all]"
     >
       <Info
         aria-hidden
-        className="size-3.5 text-status-pending"
+        className="hidden size-3.5 text-status-pending sm:block"
         strokeWidth={2}
       />
-      체험 계정이에요. 문자 작성은 가짜 발송기로 처리돼요
+      체험 계정 시 문자 작성 페이지에서의 문자 발송은 가짜 발송기로 처리돼요.
       {demoSenderNumber() && (
         <Link href="/demo-sms" className="font-bold underline">
-          실제 문자 받아 보기
+          실제로 문자 발송하기
         </Link>
       )}
     </div>
