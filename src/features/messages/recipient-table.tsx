@@ -584,9 +584,11 @@ export function RecipientTable({
         </div>
       )}
 
+      {/* 쪽을 나누는 페이지네이션이 아니다. 표는 전체 행을 이어서 스크롤하고, 아래 값은 서버에서 한 번에 받는 묶음과 이동 폭이다. */}
       <div className="flex flex-wrap items-center gap-3 border-t border-border p-3">
+        <span className="text-caption text-text-muted">한 번에 받는 행</span>
         <Segmented
-          label="페이지 크기"
+          label="한 번에 받는 행"
           value={pageSize}
           options={PAGE_SIZES.map((size) => ({
             value: size,
@@ -607,14 +609,14 @@ export function RecipientTable({
           disabled={page <= 1}
           onClick={() => jumpToPage(page - 1)}
         >
-          이전
+          이전 {pageSize}행
         </Button>
         <Button
           variant="secondary"
           disabled={page >= lastPage}
           onClick={() => jumpToPage(page + 1)}
         >
-          다음
+          다음 {pageSize}행
         </Button>
       </div>
     </>

@@ -23,6 +23,10 @@ test.describe("공용 10만 행 샘플", () => {
     // 가상화: 10만 행이 있어도 DOM에는 일부만 있다.
     expect(await table.getByRole("row").count()).toBeLessThan(100);
 
+    // 쪽 나눔이 아니라 전체 행의 높이를 가진 하나의 스크롤이다.
+    const height = await table.evaluate((element) => element.scrollHeight);
+    expect(height).toBeGreaterThan(3_000_000);
+
     await table.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
