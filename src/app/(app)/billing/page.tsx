@@ -70,7 +70,7 @@ async function Billing({ searchParams }: PageProps<"/billing">) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-title">충전</h1>
+      <h1 className="text-title-lg">충전</h1>
       {message && (
         <p
           role="status"

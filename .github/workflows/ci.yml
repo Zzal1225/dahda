@@ -47,6 +47,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Supabase 포트 예약
+        # 5432x는 Linux의 임시 포트 범위(32768~60999) 안이다. 이미지를 받는 동안 나가는 연결이 이 번호를 잡으면
+        # DB 컨테이너가 "address already in use"로 시작하지 못해, 코드와 무관하게 CI가 실패했다.
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - name: 로컬 Supabase 시작
         # 쓰지 않는 Studio를 빼서 이미지 다운로드 시간을 줄인다.
         run: npx supabase start -x studio
@@ -81,5 +85,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces
-          path: test-results
+          # 화면 비교 기준 이미지도 함께 올린다. 기준이 없을 때 Playwright가 여기에 새로 만든다.
+          path: |
+            test-results
+            e2e/visual.spec.ts-snapshots
           retention-days: 7

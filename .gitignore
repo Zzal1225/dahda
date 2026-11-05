@@ -52,3 +52,7 @@ next-env.d.ts
 # Playwright 결과물
 /test-results
 /playwright-report
+
+# 화면 비교 기준은 CI와 같은 Linux 이미지만 커밋한다.
+e2e/visual.spec.ts-snapshots/*-win32.png
+e2e/visual.spec.ts-snapshots/*-darwin.png
