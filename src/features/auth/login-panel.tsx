@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -103,6 +104,12 @@ export function LoginPanel() {
         <p className="text-center text-caption text-text-muted">
           샘플 데이터예요. 실제 문자는 번호를 직접 넣을 때만 나가요
         </p>
+        <Link
+          href="/privacy"
+          className="text-center text-caption text-text-muted underline"
+        >
+          개인정보처리방침
+        </Link>
       </div>
     </div>
   );
