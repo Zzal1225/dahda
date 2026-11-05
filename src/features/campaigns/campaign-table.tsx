@@ -89,9 +89,7 @@ function buildColumns(showBranch: boolean): DataTableColumn<CampaignRow>[] {
       id: "status",
       header: "상태",
       meta: { width: "96px" },
-      cell: ({ row }) => (
-        <StatusBadge {...campaignStatusView(row.original.status)} />
-      ),
+      cell: ({ row }) => <StatusBadge {...campaignStatusView(row.original)} />,
     }),
     column.display({
       id: "cost",
