@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { transitionCampaign } from "../../features/campaigns/status.ts";
 import type { MessageState } from "../../features/campaigns/status.ts";
 import type { Database } from "../db/database.types.ts";
+import type { MessageEventLog } from "./event-log.ts";
 import type { ReconcileStore } from "./reconcile.ts";
 import type { MessageUpdate, QueueStore } from "./worker.ts";
 
@@ -38,6 +39,25 @@ export async function settleCampaigns(
       throw new Error(`완료 처리 실패: ${completeError.message}`);
     }
   }
+}
+
+/** 워커·웹훅·조회가 함께 쓴다. 범위(org·지점)는 DB 함수가 메시지에서 읽는다. */
+export async function recordMessageEvents(
+  supabase: SupabaseClient<Database>,
+  events: readonly MessageEventLog[],
+): Promise<void> {
+  if (events.length === 0) return;
+  const { error } = await supabase.rpc("record_message_events", {
+    p_events: events.map((event) => ({
+      message_id: event.messageId,
+      source: event.source,
+      kind: event.kind,
+      outcome: event.outcome,
+      fail_code: event.failCode,
+      occurred_at: event.occurredAt.toISOString(),
+    })),
+  });
+  if (error) throw new Error(`메시지 기록 실패: ${error.message}`);
 }
 
 /**
@@ -131,6 +151,8 @@ export function createSupabaseQueueStore(
     },
 
     settleCampaigns: (ids) => settleCampaigns(supabase, ids),
+
+    recordEvents: (events) => recordMessageEvents(supabase, events),
 
     async readStates(ids) {
       const { data, error } = await supabase

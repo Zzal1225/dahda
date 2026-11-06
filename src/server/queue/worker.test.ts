@@ -8,6 +8,7 @@ import {
   type MessageUpdate,
   type QueueStore,
 } from "./worker";
+import type { MessageEventLog } from "./event-log";
 
 const DAY = new Date("2026-11-04T03:00:00Z"); // KST 12:00
 const NIGHT = new Date("2026-11-04T13:00:00Z"); // KST 22:00
@@ -39,12 +40,14 @@ function setup(
     send?: SmsProvider["send"];
     conflictOnce?: number[];
     remote?: Record<number, MessageState>;
+    failRecord?: boolean;
   } = {},
 ) {
   const updates: MessageUpdate[] = [];
   const started: string[] = [];
   const sent: string[] = [];
   const settled: string[] = [];
+  const logs: MessageEventLog[] = [];
   const conflicts = new Set(options.conflictOnce ?? []);
   const store: QueueStore = {
     claim: async () => claimed,
@@ -59,6 +62,10 @@ function setup(
       return applied;
     },
     settleCampaigns: async (ids) => void settled.push(...ids),
+    recordEvents: async (events) => {
+      if (options.failRecord) throw new Error("기록 실패");
+      logs.push(...events);
+    },
     readStates: async (ids) =>
       new Map(
         ids.flatMap((id) => {
@@ -92,6 +99,7 @@ function setup(
     started,
     sent,
     settled,
+    logs,
     tick: (now = DAY) =>
       runWorkerTick({
         store,
@@ -270,6 +278,92 @@ describe("runWorkerTick", () => {
       });
       await t.tick();
       expect(t.updates).toEqual([]);
+    });
+  });
+
+  describe("메시지 기록", () => {
+    const pick = (logs: MessageEventLog[]) =>
+      logs.map(({ messageId, kind, outcome, failCode }) => ({
+        messageId,
+        kind,
+        outcome,
+        failCode,
+      }));
+
+    it("접수·재시도·영구 실패를 한 번에 남긴다", async () => {
+      const t = setup([message(1), message(2), message(3)], {
+        send: async (batch) =>
+          batch.map((request): SendResult => {
+            if (request.idempotencyKey === "key-1") {
+              return {
+                idempotencyKey: request.idempotencyKey,
+                outcome: "accepted",
+                providerMessageId: "p-1",
+              };
+            }
+            return {
+              idempotencyKey: request.idempotencyKey,
+              outcome: "rejected",
+              failCode: "E1",
+              retryable: request.idempotencyKey === "key-2",
+            };
+          }),
+      });
+      await t.tick();
+      expect(pick(t.logs)).toEqual([
+        { messageId: 2, kind: "retry", outcome: "scheduled", failCode: "E1" },
+        { messageId: 1, kind: "accepted", outcome: "applied", failCode: null },
+        {
+          messageId: 3,
+          kind: "send_failed",
+          outcome: "applied",
+          failCode: "E1",
+        },
+      ]);
+    });
+
+    it("웹훅이 먼저 왔으면 늦게 기록했다고 남긴다", async () => {
+      const t = setup([message(1)], {
+        conflictOnce: [1],
+        remote: {
+          1: {
+            status: "delivered",
+            providerMessageId: "p-key-1",
+            failCode: null,
+            sentAt: null,
+            finalizedAt: DAY,
+          },
+        },
+      });
+      await t.tick();
+      expect(pick(t.logs)).toEqual([
+        {
+          messageId: 1,
+          kind: "accepted",
+          outcome: "recorded_late",
+          failCode: null,
+        },
+      ]);
+    });
+
+    it("야간 광고 보류도 남긴다", async () => {
+      const t = setup([message(1, { isAd: true })]);
+      await t.tick(NIGHT);
+      expect(pick(t.logs)).toEqual([
+        {
+          messageId: 1,
+          kind: "deferred",
+          outcome: "scheduled",
+          failCode: null,
+        },
+      ]);
+    });
+
+    it("기록 저장이 실패해도 발송 결과와 정산은 그대로다", async () => {
+      const t = setup([message(1)], { failRecord: true });
+      expect(await t.tick()).toMatchObject({ accepted: 1 });
+      expect(t.updates).toHaveLength(1);
+      expect(t.settled).toEqual(["c1"]);
     });
   });
 });

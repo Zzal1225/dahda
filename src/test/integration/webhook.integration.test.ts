@@ -121,6 +121,23 @@ const messageOf = async (key: string) =>
       .eq("idempotency_key", key)
       .single(),
   );
+const historyOf = async (key: string) => {
+  const { id } = must(
+    await service
+      .from("messages")
+      .select("id")
+      .eq("idempotency_key", key)
+      .single(),
+  );
+  return must(
+    await service
+      .from("message_events")
+      .select("source, kind, outcome")
+      .eq("message_id", id)
+      .order("received_at")
+      .order("id"),
+  );
+};
 const balance = async () =>
   must(
     await service
@@ -263,6 +280,39 @@ describe("중복과 역순", () => {
       sent_count: 1,
       delivered_count: 1,
     });
+  });
+
+  it("수신자 기록에 접수·반영·중복 무시가 순서대로 남는다", async () => {
+    const id = await submit(1);
+    await tick();
+    const [key] = await keysOf(id);
+    await post([event(key ?? "")]);
+    await post([event(key ?? "")]);
+
+    expect(await historyOf(key ?? "")).toEqual([
+      { source: "worker", kind: "accepted", outcome: "applied" },
+      { source: "webhook", kind: "delivered", outcome: "applied" },
+      { source: "webhook", kind: "delivered", outcome: "ignored_final" },
+    ]);
+  });
+
+  it("웹훅이 먼저 오면 접수는 늦게 기록했다고 남는다", async () => {
+    await submit(1);
+    let key = "";
+    const racing: SmsProvider = {
+      ...accepting,
+      send: async (batch) => {
+        key = batch[0]?.idempotencyKey ?? "";
+        await post([event(key)]);
+        return accepting.send(batch);
+      },
+    };
+    await tick(racing);
+
+    expect(await historyOf(key)).toEqual([
+      { source: "webhook", kind: "delivered", outcome: "applied" },
+      { source: "worker", kind: "accepted", outcome: "recorded_late" },
+    ]);
   });
 
   it("모르는 메시지는 200으로 받고 기록한다", async () => {

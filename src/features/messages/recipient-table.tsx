@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { formatPhone } from "@/lib/format";
 import { formatKstTime } from "@/lib/kst";
 import { cn } from "@/lib/utils";
+import { MessageEventsDialog } from "./message-events-dialog";
 import type { MessagePage, MessageRow } from "./message-query";
 import {
   failReason,
@@ -255,6 +256,10 @@ export function RecipientTable({
   }, [rowByIndex, page, pageSize]);
 
   const { setPage, toggleRow, togglePage, toggleSort } = state;
+  const [eventsFor, setEventsFor] = useState<{
+    id: number;
+    phone: string;
+  } | null>(null);
 
   const columns = useMemo<DataTableColumn<MessageRow>[]>(
     () => [
@@ -363,6 +368,32 @@ export function RecipientTable({
         meta: { width: "52px", align: "right" },
         cell: ({ row }) => row.original.attemptCount,
       }),
+      // 공용 샘플은 기록을 만들지 않아 열지 않는다.
+      ...(readOnly
+        ? []
+        : [
+            column.display({
+              id: "events",
+              header: "기록",
+              meta: { width: "64px" },
+              cell: ({ row }) => (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={`${formatPhone(row.original.phone)} 기록 보기`}
+                  onClick={() =>
+                    setEventsFor({
+                      id: row.original.id,
+                      phone: row.original.phone,
+                    })
+                  }
+                  className="cursor-pointer text-caption text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                >
+                  보기
+                </button>
+              ),
+            }),
+          ]),
     ],
     [
       readOnly,
@@ -515,6 +546,12 @@ export function RecipientTable({
 
   return (
     <>
+      <MessageEventsDialog
+        scope={scope}
+        campaignId={campaignId}
+        message={eventsFor}
+        onClose={() => setEventsFor(null)}
+      />
       <DataTable
         ariaLabel="수신자별 결과"
         columns={columns}
@@ -587,6 +624,9 @@ export function RecipientTable({
       <div className="flex flex-wrap items-center gap-3 border-t border-border p-3">
         {/* 페이지네이션이 아니다. 전체 행이 한 스크롤이고, 이 값은 서버에서 한 번에 받는 묶음 크기다.
             "페이지 크기"라고 쓰면 표가 나뉘어 있다고 오해해 가상화가 하는 일이 보이지 않는다. */}
+        <span aria-hidden className="text-caption text-text-muted">
+          한 번에 받는 행
+        </span>
         <Segmented
           label="한 번에 받는 행"
           value={pageSize}
