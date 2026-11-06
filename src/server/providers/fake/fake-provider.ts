@@ -63,7 +63,15 @@ export type FakeProviderOptions = {
   failureRate?: number;
   minDelayMs?: number;
   maxDelayMs?: number;
+  /**
+   * 일부 웹훅을 일부러 이상하게 보낸다. 절반은 같은 웹훅을 한 번 더(중복), 절반은 지연 없이 바로(접수 기록보다 먼저일 수 있음).
+   * 실제 업체도 재전송과 순서 뒤바뀜이 있다. 체험 화면의 수신자 기록에서 그 처리를 보이려고 둔다.
+   * 기본값 0: 테스트와 CI는 지금과 똑같이 동작한다.
+   */
+  anomalyRate?: number;
 };
+
+const DUPLICATE_AFTER_MS = 1_500;
 
 export function createFakeProvider(options: FakeProviderOptions): SmsProvider {
   if (!options.secret) throw new Error("가짜 발송기의 서명 키가 비어 있다");
@@ -76,6 +84,7 @@ export function createFakeProvider(options: FakeProviderOptions): SmsProvider {
   const failureRate = options.failureRate ?? DEFAULT_FAILURE_RATE;
   const minDelayMs = options.minDelayMs ?? DEFAULT_MIN_DELAY_MS;
   const maxDelayMs = options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS;
+  const anomalyRate = Math.min(1, Math.max(0, options.anomalyRate ?? 0));
 
   // 업체의 멱등 처리를 흉내 낸다. 재시도한 요청에 웹훅을 또 보내면 실제 업체와 다른 환경에서 테스트하게 된다.
   const accepted = new Set<string>();
@@ -84,7 +93,13 @@ export function createFakeProvider(options: FakeProviderOptions): SmsProvider {
     request: SendRequest,
     providerMessageId: string,
   ): void {
-    const delayMs = minDelayMs + random() * (maxDelayMs - minDelayMs);
+    // 0이면 난수를 더 뽑지 않는다. 뽑으면 난수를 고정한 기존 테스트의 순서가 밀린다.
+    const roll = anomalyRate > 0 ? random() : 1;
+    const early = roll < anomalyRate / 2;
+    const duplicate = !early && roll < anomalyRate;
+    const delayMs = early
+      ? 0
+      : minDelayMs + random() * (maxDelayMs - minDelayMs);
 
     schedule(() => {
       const occurredAt = now().toISOString();
@@ -107,9 +122,13 @@ export function createFakeProvider(options: FakeProviderOptions): SmsProvider {
               occurredAt,
             };
 
-      void signFakeWebhook(options.secret, JSON.stringify({ events: [event] }))
-        .then(options.deliver)
-        .catch(options.onDeliveryError);
+      const rawBody = JSON.stringify({ events: [event] });
+      const deliver = () =>
+        void signFakeWebhook(options.secret, rawBody)
+          .then(options.deliver)
+          .catch(options.onDeliveryError);
+      deliver();
+      if (duplicate) schedule(deliver, DUPLICATE_AFTER_MS);
     }, delayMs);
   }
 

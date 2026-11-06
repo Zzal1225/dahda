@@ -79,6 +79,8 @@ Deno.serve(async (request) => {
           ),
         );
       },
+      // 운영 체험만 켠다(예: 0.05). 없거나 숫자가 아니면 0이라 로컬·CI는 그대로다.
+      anomalyRate: Number(Deno.env.get("FAKE_ANOMALY_RATE") ?? "0") || 0,
     });
 
     const supabase = createClient(

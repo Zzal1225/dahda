@@ -7,6 +7,7 @@ import {
   transitionMessage,
   type CampaignStatus,
   type MessageEvent,
+  type MessageOutcome,
   type MessageState,
   type MessageStatus,
 } from "../../features/campaigns/status.ts";
@@ -15,6 +16,11 @@ import type {
   SendResult,
   SmsProvider,
 } from "../providers/sms-provider.ts";
+import {
+  recordSafely,
+  type EventLogStore,
+  type MessageEventLog,
+} from "./event-log.ts";
 import { MAX_ATTEMPTS, retryDelayMs } from "./retry.ts";
 
 /**
@@ -49,7 +55,7 @@ export type MessageUpdate = {
   attemptCount?: number;
 };
 
-export interface QueueStore {
+export interface QueueStore extends EventLogStore {
   claim(limit: number, leaseSeconds: number): Promise<ClaimedMessage[]>;
   startCampaigns(ids: readonly string[]): Promise<void>;
   /** 조건이 맞아 실제로 바꾼 id를 돌려준다. */
@@ -115,6 +121,7 @@ export async function runWorkerTick(
 
   const startedAt = now();
   const plain: MessageUpdate[] = [];
+  const logs: MessageEventLog[] = [];
   const events = new Map<number, PendingEvent>();
   const sendable: ClaimedMessage[] = [];
   const startable: ClaimedMessage[] = [];
@@ -129,6 +136,14 @@ export async function runWorkerTick(
         provider: null,
         nextAttemptAt: nextAdSendableAt(startedAt),
         attemptCount: message.attemptCount - 1,
+      });
+      logs.push({
+        messageId: message.id,
+        source: "worker",
+        kind: "deferred",
+        outcome: "scheduled",
+        failCode: null,
+        occurredAt: startedAt,
       });
       summary.deferred += 1;
     } else if (message.attemptCount > MAX_ATTEMPTS) {
@@ -183,6 +198,14 @@ export async function runWorkerTick(
           provider: null,
           nextAttemptAt: new Date(at.getTime() + delay),
         });
+        logs.push({
+          messageId: message.id,
+          source: "worker",
+          kind: "retry",
+          outcome: "scheduled",
+          failCode,
+          occurredAt: at,
+        });
         summary.retried += 1;
       } else {
         events.set(message.id, {
@@ -196,7 +219,21 @@ export async function runWorkerTick(
   }
 
   if (plain.length > 0) await store.applyUpdates(plain);
-  await applyEvents(store, events);
+  const outcomes = await applyEvents(store, events);
+  for (const [id, outcome] of outcomes) {
+    const pending = events.get(id);
+    if (!pending) continue;
+    logs.push({
+      messageId: id,
+      source: "worker",
+      kind: pending.event.type === "accepted" ? "accepted" : "send_failed",
+      outcome,
+      failCode:
+        pending.event.type === "send_failed" ? pending.event.failCode : null,
+      occurredAt: pending.event.at,
+    });
+  }
+  await recordSafely(store, logs);
   // 업체 거절만으로 모든 건이 끝나면 웹훅이 오지 않으므로 여기서 마무리해야 한다.
   await store.settleCampaigns([
     ...new Set([...events.values()].map((pending) => pending.campaignId)),
@@ -261,17 +298,22 @@ async function sendSafely(
   }
 }
 
-/** 웹훅이 먼저 온 행은 조건이 어긋나 빠진다. 다시 읽어 status.ts에 맡긴다. 접수 시각만 채우고 끝날 수 있다. */
+/**
+ * 웹훅이 먼저 온 행은 조건이 어긋나 빠진다. 다시 읽어 status.ts에 맡긴다. 접수 시각만 채우고 끝날 수 있다.
+ * 메시지마다 마지막 판단을 돌려준다. 경합이 끝까지 풀리지 않은 행은 결과를 모르므로 넣지 않는다.
+ */
 async function applyEvents(
   store: QueueStore,
   events: ReadonlyMap<number, PendingEvent>,
-): Promise<void> {
+): Promise<Map<number, MessageOutcome>> {
+  const outcomes = new Map<number, MessageOutcome>();
   let states = new Map<number, MessageState>(
     [...events.keys()].map((id) => [id, QUEUED]),
   );
 
   for (let round = 0; round < CONFLICT_RETRIES && states.size > 0; round += 1) {
     const updates: MessageUpdate[] = [];
+    const tried = new Map<number, MessageOutcome>();
     for (const [id, state] of states) {
       const pending = events.get(id);
       if (!pending) continue;
@@ -286,15 +328,22 @@ async function applyEvents(
           state: transition.state,
           provider: pending.provider,
         });
+        tried.set(id, transition.outcome);
+      } else {
+        outcomes.set(id, transition.outcome);
       }
     }
-    if (updates.length === 0) return;
+    if (updates.length === 0) return outcomes;
 
     const applied = new Set(await store.applyUpdates(updates));
+    for (const [id, outcome] of tried) {
+      if (applied.has(id)) outcomes.set(id, outcome);
+    }
     const conflicted = updates
       .map((update) => update.id)
       .filter((id) => !applied.has(id));
-    if (conflicted.length === 0) return;
+    if (conflicted.length === 0) return outcomes;
     states = await store.readStates(conflicted);
   }
+  return outcomes;
 }

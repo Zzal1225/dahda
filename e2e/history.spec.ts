@@ -206,8 +206,40 @@ test.describe("발송 내역", () => {
     await expect(campaignTable(page).getByRole("row")).toHaveCount(9);
     await expect(campaignTable(page)).toContainText("실패 8");
 
+    // nuqs는 주소를 조금 늦게 쓰므로, 주소가 바뀐 것을 본 뒤에 새로고침한다.
+    await expect(page).toHaveURL(/state=has_failed/);
     await page.reload();
     await expect(state).toHaveValue("has_failed");
+  });
+
+  test("수신자 기록에서 중복과 순서가 바뀐 결과를 어떻게 처리했는지 보인다", async ({
+    page,
+  }) => {
+    await openHistoryAsTrial(page);
+    await campaignTable(page)
+      .getByRole("row", { name: /성수점 이번 주 특가/ })
+      .click();
+    const search = page.getByRole("searchbox", { name: "수신번호 검색" });
+
+    // 샘플의 7번은 같은 결과가 두 번 왔다.
+    await search.fill("01000000007");
+    await expect(page).toHaveURL(/q=01000000007/);
+    await expect(page.getByText("1–1 / 1건")).toBeVisible();
+    await page.getByRole("button", { name: /기록 보기/ }).click();
+    const dialog = page.getByRole("dialog");
+    const lines = dialog.getByRole("list", { name: "수신자 기록" });
+    await expect(lines.getByRole("listitem")).toHaveCount(3);
+    await expect(lines).toContainText("이미 확정돼 무시(중복)");
+    await page.keyboard.press("Escape");
+
+    // 3번은 결과 웹훅이 접수 기록보다 먼저 왔다.
+    await search.fill("01000000003");
+    await expect(page).toHaveURL(/q=01000000003/);
+    // 앞 검색의 행이 남아 있을 때 누르지 않도록 번호로 고른다.
+    await page.getByRole("button", { name: "010-0000-0003 기록 보기" }).click();
+    await expect(lines.getByRole("listitem").first()).toContainText("웹훅");
+    await expect(lines).toContainText("결과가 먼저 와서 접수 정보만 채움");
+    await expect(lines).toContainText("순서 바뀜");
   });
 
   test("잘못된 URL 값이 있어도 화면이 깨지지 않는다", async ({ page }) => {

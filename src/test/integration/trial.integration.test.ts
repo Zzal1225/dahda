@@ -174,6 +174,29 @@ describe("create_trial_org", () => {
     ).toBeTruthy();
   });
 
+  it("보낸 샘플 메시지에만 기록이 있고 중복·순서 바뀜이 섞여 있다", async () => {
+    const { orgId } = await createTrialUser();
+    // 기록이 1천 줄을 넘어 API 기본 상한에 잘리므로 행을 받지 않고 센다.
+    const count = async (outcome: string) =>
+      (
+        await service
+          .from("message_events")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", orgId)
+          .eq("outcome", outcome)
+      ).count;
+
+    expect(await count("ignored_final")).toBeGreaterThan(0);
+    expect(await count("recorded_late")).toBeGreaterThan(0);
+    // 승인 대기·예약 샘플은 아직 보내지 않았으므로 기록이 없다.
+    const queued = await service
+      .from("message_events")
+      .select("id, messages!inner(status)", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("messages.status", "queued");
+    expect(queued.count).toBe(0);
+  });
+
   it("두 번 불러도 본사가 하나만 생긴다", async () => {
     const { userId, orgId } = await createTrialUser();
 

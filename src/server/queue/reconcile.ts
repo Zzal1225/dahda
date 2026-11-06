@@ -4,6 +4,7 @@ import {
   type MessageState,
 } from "../../features/campaigns/status.ts";
 import type { SmsProvider } from "../providers/sms-provider.ts";
+import { recordSafely, type MessageEventLog } from "./event-log.ts";
 import type { MessageUpdate, QueueStore } from "./worker.ts";
 
 /** 조회해도 결과가 없는 메시지를 포기할 때 쓰는 우리 쪽 실패 코드. */
@@ -24,7 +25,7 @@ export type StaleMessage = {
 
 export interface ReconcileStore extends Pick<
   QueueStore,
-  "applyUpdates" | "settleCampaigns"
+  "applyUpdates" | "settleCampaigns" | "recordEvents"
 > {
   listStaleSent(
     sentBefore: Date,
@@ -81,6 +82,7 @@ export async function runReconcileTick(options: {
 
   const updates: MessageUpdate[] = [];
   const campaignOf = new Map<number, string>();
+  const logOf = new Map<number, Omit<MessageEventLog, "outcome">>();
 
   for (const [name, messages] of byProvider) {
     let results;
@@ -137,11 +139,27 @@ export async function runReconcileTick(options: {
         provider: name,
       });
       campaignOf.set(message.id, message.campaignId);
+      logOf.set(message.id, {
+        messageId: message.id,
+        source: "reconcile",
+        kind: event.type === "delivered" ? "delivered" : "failed",
+        failCode: event.type === "failed" ? event.failCode : null,
+        occurredAt: event.at,
+      });
     }
   }
 
   if (updates.length === 0) return summary;
   const applied = await store.applyUpdates(updates);
+  // 저장되지 않은 행은 조회하는 사이 웹훅이 먼저 확정한 것이다. 조회 결과가 버려졌다는 사실도 남긴다.
+  const appliedSet = new Set(applied);
+  await recordSafely(
+    store,
+    [...logOf.values()].map((log) => ({
+      ...log,
+      outcome: appliedSet.has(log.messageId) ? "applied" : "ignored_final",
+    })),
+  );
   await store.settleCampaigns([
     ...new Set(
       applied.flatMap((id) => {

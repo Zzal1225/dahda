@@ -230,7 +230,7 @@ export async function createFixture() {
       .select("id, org_id, branch_id"),
   );
 
-  must(
+  const messages = must(
     await service
       .from("messages")
       .insert(
@@ -242,6 +242,20 @@ export async function createFixture() {
       )
       .select("id"),
   );
+
+  // 범위는 함수가 메시지에서 복사한다. 계정마다 한 줄씩 있어야 조회 범위 검사가 의미 있다.
+  // 돌려주는 값이 없는 함수라 must 대신 오류만 본다.
+  const recorded = await service.rpc("record_message_events", {
+    p_events: messages.map((m) => ({
+      message_id: m.id,
+      source: "worker",
+      kind: "accepted",
+      outcome: "applied",
+      fail_code: null,
+      occurred_at: new Date().toISOString(),
+    })),
+  });
+  if (recorded.error) throw new Error(recorded.error.message);
 
   const payments = must(
     await service
