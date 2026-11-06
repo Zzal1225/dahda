@@ -16,7 +16,7 @@ async function requestAd(page: Page, branch: string, text: string) {
   await switchTo(page, `지점 · ${branch}`);
   await expect(page.getByRole("banner")).toContainText(branch);
   await page.goto("/compose");
-  await page.getByRole("checkbox", { name: /단골 손님/ }).check();
+  await page.getByRole("checkbox", { name: /단골/ }).check();
   await page.getByRole("textbox", { name: "보낼 내용" }).fill(text);
   await page.getByRole("switch", { name: "광고 문자예요" }).check();
   await page.getByRole("radio", { name: "예약 발송" }).check();
@@ -24,15 +24,19 @@ async function requestAd(page: Page, branch: string, text: string) {
     .getByRole("combobox", { name: "예약 날짜" })
     .selectOption({ index: 1 });
   await page.getByRole("combobox", { name: "예약 시각" }).selectOption("10:00");
-  await expect(
-    page.getByRole("status").filter({ hasText: "총" }),
-  ).toContainText("명");
+  const summary = page.getByRole("status").filter({ hasText: "총" });
+  await expect(summary).toContainText("명");
+  // 체험 주소록은 무작위라 받는 사람 수를 화면에서 읽는다. 광고라 미동의가 빠진 수다.
+  const total = Number(
+    /총 ([0-9,]+)명/.exec(await summary.innerText())?.[1]?.replace(/,/g, ""),
+  );
   await page.getByRole("button", { name: "승인 요청" }).click();
   await page
     .getByRole("dialog", { name: "승인 요청 확인" })
     .getByRole("button", { name: "승인 요청" })
     .click();
   await expect(page).toHaveURL(/\/history\?campaign=/);
+  return total;
 }
 
 test.describe("승인함", () => {
@@ -40,7 +44,8 @@ test.describe("승인함", () => {
     page,
   }) => {
     await startTrial(page);
-    await requestAd(page, "성수점", "주말 특가 안내");
+    const recipients = await requestAd(page, "성수점", "주말 특가 안내");
+    expect(recipients).toBeGreaterThan(0);
     await expect(page.getByRole("banner")).toContainText("₩2,000,000");
 
     await switchTo(page, /본사 관리자/);
@@ -78,7 +83,9 @@ test.describe("승인함", () => {
     await switchTo(page, "지점 · 성수점");
     await expect(
       page.getByRole("region", { name: "잔액", exact: true }),
-    ).toContainText("₩1,999,520");
+    ).toContainText(
+      `₩${(2_000_000 - recipients * 20).toLocaleString("ko-KR")}`,
+    );
     await page.goto("/history");
     await page
       .getByRole("table", { name: "발송 건" })
@@ -208,7 +215,7 @@ test.describe("예약 취소", () => {
     await expect(page.getByRole("banner")).toContainText("성수점");
     await page.goto("/compose");
 
-    await page.getByRole("checkbox", { name: /단골 손님/ }).check();
+    await page.getByRole("checkbox", { name: /단골/ }).check();
     await page.getByRole("textbox", { name: "보낼 내용" }).fill("취소할 예약");
     await page.getByRole("radio", { name: "예약 발송" }).check();
     await page
@@ -248,7 +255,7 @@ test.describe("예약 취소", () => {
     await expect(page.getByRole("banner")).toContainText("망원점");
     await page.goto("/compose");
 
-    await page.getByRole("checkbox", { name: /신규 손님/ }).check();
+    await page.getByRole("checkbox", { name: /신규/ }).check();
     await page.getByRole("textbox", { name: "보낼 내용" }).fill("지금 보내기");
     await expect(
       page.getByRole("status").filter({ hasText: "총" }),

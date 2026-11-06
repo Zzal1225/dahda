@@ -149,9 +149,64 @@ describe("listContacts", () => {
 
 describe("contactFiltersSchema", () => {
   it("잘못된 URL 값은 조건 없음으로 처리한다", () => {
-    expect(filters({ group: "abc", branch: "x", page: "-1", q: "  " })).toEqual(
-      { q: "", group: null, branch: null, page: 1 },
+    expect(
+      filters({ group: "abc", branch: "x", status: "zz", page: "-1", q: "  " }),
+    ).toEqual({ q: "", group: null, branch: null, status: null, page: 1 });
+  });
+
+  it("수신거부 보기는 그룹 자리의 opt-outs 값이다", () => {
+    expect(filters({ group: "opt-outs", status: "opted_out" })).toMatchObject({
+      group: "opt-outs",
+      status: "opted_out",
+    });
+  });
+});
+
+describe("listContacts: 수신 상태·뒤 4자리", () => {
+  it("수신 상태로 거른다. 수신거부가 동의보다 앞선다", async () => {
+    // 이영희는 수신거부다. 동의 기록이 있어도 수신거부로 본다.
+    await service
+      .from("contacts")
+      .update({ consent_at: "2026-01-01T00:00:00Z" })
+      .in("phone", ["01000002222", "01000003333"]);
+    const client = await asUser("branch1");
+
+    const status = async (value: string) =>
+      (await listContacts(client, filters({ status: value }))).rows.map(
+        (row) => row.phone,
+      );
+    expect(await status("opted_out")).toEqual(["01000002222"]);
+    expect(await status("consented")).toContain("01000003333");
+    expect(await status("consented")).not.toContain("01000002222");
+    expect(await status("not_consented")).toContain("01000001111");
+
+    const { rows } = await listContacts(client, filters());
+    expect(rows.find((r) => r.phone === "01000002222")?.receiveStatus).toBe(
+      "opted_out",
     );
+  });
+
+  it("숫자 4자리 이하는 번호 끝, 더 길면 번호 앞으로 찾는다", async () => {
+    const client = await asUser("branch1");
+    const suffix = await listContacts(client, filters({ q: "1111" }));
+    expect(suffix.rows.map((r) => r.phone)).toEqual(["01000001111"]);
+    // 0100 앞자리는 모든 번호에 있지만 4자리라 끝으로 찾는다.
+    const notPrefix = await listContacts(client, filters({ q: "0100" }));
+    expect(notPrefix.rows).toEqual([]);
+    const prefix = await listContacts(client, filters({ q: "010-0000-2" }));
+    expect(prefix.rows.map((r) => r.phone)).toEqual(["01000002222"]);
+  });
+
+  it("수신거부 보기 값은 그룹 조건이 아니다", async () => {
+    const client = await asUser("branch1");
+    const all = await listContacts(client, filters());
+    const view = await listContacts(client, filters({ group: "opt-outs" }));
+    expect(view.total).toBe(all.total);
+  });
+
+  it("등록일과 지점 이름을 함께 준다", async () => {
+    const { rows } = await listContacts(await asUser("hq"), filters());
+    expect(rows.every((row) => row.createdAt && row.branchName)).toBe(true);
   });
 });
 

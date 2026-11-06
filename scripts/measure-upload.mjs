@@ -54,7 +54,9 @@ async function measureOnce(file) {
   await page.getByRole("button", { name: "로그인", exact: true }).click();
   await page.waitForURL(`${BASE}/`);
 
-  await page.goto(`${BASE}/contacts/upload`);
+  // 업로드는 주소록의 대화상자다. 측정 구간(파싱)은 예전과 같다: 파일을 고른 뒤 Worker가 표를 읽을 때까지.
+  await page.goto(`${BASE}/contacts`);
+  await page.getByRole("button", { name: "엑셀 업로드" }).click();
   await page.getByRole("button", { name: "파일 선택" }).waitFor();
 
   // 파일 처리 구간에만 적용한다. 로그인과 화면 진입 시간은 재지 않는다.

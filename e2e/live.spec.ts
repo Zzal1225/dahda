@@ -24,6 +24,8 @@ const service = createClient<Database>(
 /** 워커를 돌리고 결과 웹훅이 앱에 모두 도착할 때까지 기다린다. */
 async function runWorker(failureRate: number) {
   const deliveries: Promise<unknown>[] = [];
+  // 하나씩 보낸다. 체험 그룹이 100명대라 한꺼번에 보내면 로컬에서 앱 → Supabase 연결이 모자라 일부가 실패한다.
+  let previous: Promise<unknown> = Promise.resolve();
   const fake = createFakeProvider({
     secret: env.FAKE_WEBHOOK_SECRET ?? "",
     failureRate,
@@ -31,11 +33,14 @@ async function runWorker(failureRate: number) {
     minDelayMs: 1500,
     maxDelayMs: 1500,
     deliver: async (webhook) => {
-      const delivery = fetch("http://127.0.0.1:3000/api/webhooks/sms/fake", {
-        method: "POST",
-        headers: webhook.headers,
-        body: webhook.rawBody,
-      });
+      const delivery = previous.then(() =>
+        fetch("http://127.0.0.1:3000/api/webhooks/sms/fake", {
+          method: "POST",
+          headers: webhook.headers,
+          body: webhook.rawBody,
+        }),
+      );
+      previous = delivery.catch(() => undefined);
       deliveries.push(delivery);
       await delivery;
     },
@@ -58,7 +63,7 @@ async function sendNow(page: Page, branch: string, text: string) {
   await page.getByRole("menuitemradio", { name: `지점 · ${branch}` }).click();
   await expect(page.getByRole("banner")).toContainText(branch);
   await page.goto("/compose");
-  await page.getByRole("checkbox", { name: /신규 손님/ }).check();
+  await page.getByRole("checkbox", { name: /신규/ }).check();
   await page.getByRole("textbox", { name: "보낼 내용" }).fill(text);
   await expect(
     page.getByRole("status").filter({ hasText: "총" }),

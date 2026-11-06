@@ -1,4 +1,41 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../src/server/db/database.types";
+
+const env = Object.fromEntries(
+  readFileSync(".env.local", "utf8")
+    .split(/\r?\n/)
+    .filter((line) => line.includes("="))
+    .map((line) => {
+      const at = line.indexOf("=");
+      return [line.slice(0, at), line.slice(at + 1)];
+    }),
+);
+const service = createClient<Database>(
+  env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  env.SUPABASE_SECRET_KEY ?? "",
+  { auth: { persistSession: false, autoRefreshToken: false } },
+);
+
+/** 이 발송 건에서 그 처리 결과(중복 무시·늦은 접수) 기록이 있는 메시지의 번호. */
+async function phoneWithEvent(
+  campaignId: string,
+  outcome: "ignored_final" | "recorded_late",
+): Promise<string> {
+  const { data, error } = await service
+    .from("message_events")
+    .select("messages!inner(phone, campaign_id)")
+    .eq("outcome", outcome)
+    .eq("messages.campaign_id", campaignId)
+    .limit(1)
+    .single();
+  if (error) throw new Error(`기록 조회 실패: ${error.message}`);
+  return data.messages.phone;
+}
+
+const formatted = (digits: string) =>
+  `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 
 async function openHistoryAsTrial(page: Page) {
   await page.goto("/login");
@@ -221,10 +258,15 @@ test.describe("발송 내역", () => {
       .getByRole("row", { name: /성수점 \[주차장 공사/ })
       .click();
     const search = page.getByRole("searchbox", { name: "수신번호 검색" });
+    // 샘플 수신자는 주소록 사람(무작위 번호)이라, 중복·순서 바뀜 기록이 있는 번호를 DB에서 찾는다.
+    await expect(page).toHaveURL(/campaign=/);
+    const campaignId = new URL(page.url()).searchParams.get("campaign") ?? "";
+    const duplicated = await phoneWithEvent(campaignId, "ignored_final");
+    const reordered = await phoneWithEvent(campaignId, "recorded_late");
 
-    // 샘플의 7번은 같은 결과가 두 번 왔다.
-    await search.fill("01000000007");
-    await expect(page).toHaveURL(/q=01000000007/);
+    // 같은 결과가 두 번 왔다.
+    await search.fill(duplicated);
+    await expect(page).toHaveURL(new RegExp(`q=${duplicated}`));
     await expect(page.getByText("1–1 / 1건")).toBeVisible();
     await page.getByRole("button", { name: /기록 보기/ }).click();
     const dialog = page.getByRole("dialog");
@@ -233,11 +275,13 @@ test.describe("발송 내역", () => {
     await expect(lines).toContainText("이미 확정돼 무시(중복)");
     await page.keyboard.press("Escape");
 
-    // 3번은 결과 웹훅이 접수 기록보다 먼저 왔다.
-    await search.fill("01000000003");
-    await expect(page).toHaveURL(/q=01000000003/);
+    // 결과 웹훅이 접수 기록보다 먼저 왔다.
+    await search.fill(reordered);
+    await expect(page).toHaveURL(new RegExp(`q=${reordered}`));
     // 앞 검색의 행이 남아 있을 때 누르지 않도록 번호로 고른다.
-    await page.getByRole("button", { name: "010-0000-0003 기록 보기" }).click();
+    await page
+      .getByRole("button", { name: `${formatted(reordered)} 기록 보기` })
+      .click();
     await expect(lines.getByRole("listitem").first()).toContainText("웹훅");
     await expect(lines).toContainText("결과가 먼저 와서 접수 정보만 채움");
     await expect(lines).toContainText("순서 바뀜");

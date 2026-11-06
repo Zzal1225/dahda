@@ -38,6 +38,11 @@ export function formatKstDateTime(value: Date | string): string {
   return `${date} ${minute}`;
 }
 
+/** 2026.11.04. 등록일처럼 시각이 필요 없는 칸 */
+export function formatKstDate(value: Date | string): string {
+  return parts(value).date;
+}
+
 /** 11월 6일(금). 첫 화면 제목처럼 연도가 필요 없는 오늘 표시에 쓴다. */
 export function formatKstMonthDayWeekday(value: Date | string): string {
   const { day } = parts(value);

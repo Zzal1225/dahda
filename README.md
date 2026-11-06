@@ -35,16 +35,20 @@
 | 비동기로 바뀌는 여러 상태 | 발송 내역의 승인 대기·예약·확인 중·완료·일부 실패·반려 샘플과 진행 숫자. 본사로 승인 대기 광고를 승인하면 진행률이 실시간으로 찹니다 | [상태 전이](src/features/campaigns/status.ts), [상태 조합 테스트](src/features/campaigns/status.test.ts) |
 | 웹훅 중복·역순 처리 | 수신자 표의 **기록 보기**. 샘플의 010-0000-0007은 같은 결과가 두 번 왔고, 010-0000-0003은 결과가 접수 기록보다 먼저 왔습니다 | [웹훅 처리](src/server/webhooks/process-sms-webhook.ts), [웹훅 통합 테스트](src/test/integration/webhook.integration.test.ts) |
 | 역할별 권한 | 역할을 지점으로 바꾸면 메뉴·버튼·데이터가 줄고, 다른 지점 발송 건 주소로 들어와도 수신자가 보이지 않습니다 | [RLS 정책](supabase/migrations/20261104000200_rls.sql), [권한 통합 테스트](src/test/integration/rls.integration.test.ts) |
-| 검증이 많은 폼 | 문자 작성의 바이트·SMS/LMS 전환·광고 표기·야간 차단·예약 시각·예상 비용·미동의 제외, 주소록 엑셀 업로드의 형식 오류 고치기 | [발송 폼 스키마](src/features/campaigns/campaignSchema.ts), [업로드 분류](src/features/contacts/upload/upload-rows.ts) |
+| 검증이 많은 폼 | 문자 작성의 바이트·SMS/LMS 전환·광고 표기·야간 차단·예약 시각·예상 비용·미동의 제외, 주소록 엑셀 업로드의 열 매핑과 형식 오류·중복·수신거부 분류 | [발송 폼 스키마](src/features/campaigns/campaignSchema.ts), [업로드 분류](src/features/contacts/upload/upload-rows.ts) |
 | URL 필터와 확인 대화상자 | 발송 내역의 기간·지점·광고·상태·번호 필터와 링크 복사. 발송·재발송·승인·반려·예약 취소 전 확인 | [URL 상태](src/features/messages/useTableState.ts) |
 
 | 상태가 섞인 발송 내역 | 수신자 기록 |
 | --- | --- |
 | ![승인 대기, 예약, 확인 중, 일부 실패, 반려 상태와 도착 비율이 보이는 발송 내역](docs/assets/history-states.png) | ![결과 웹훅이 접수 기록보다 먼저 와서 순서 바뀜으로 표시된 수신자 기록](docs/assets/message-events.png) |
 
-| 10만 행 샘플 | 엑셀 업로드 오류 |
+| 10만 행 샘플 | 주소록 |
 | --- | --- |
-| ![10만 행 중 그린 행 15개만 보이는 수신자 표](docs/assets/sample-100k.png) | ![형식 오류, 중복, 수신거부를 나눠 보여 주고 그 자리에서 고치는 업로드 화면](docs/assets/upload-errors.png) |
+| ![10만 행 중 그린 행 15개만 보이는 수신자 표](docs/assets/sample-100k.png) | ![왼쪽 그룹 목록과 번호를 가린 연락처 표, 수신 상태 점 표시](docs/assets/contacts.png) |
+
+| 엑셀 업로드 열 매핑 | 엑셀 업로드 결과 |
+| --- | --- |
+| ![첫 5행 미리보기와 이름·전화번호·그룹·메모 열 매핑](docs/assets/upload-mapping.png) | ![1만 행을 처리한 뒤 추가·중복·형식 오류·수신거부 제외·처리 시간 요약과 오류 행 받기](docs/assets/upload-result.png) |
 
 ## 어떤 문제를 푸나요
 

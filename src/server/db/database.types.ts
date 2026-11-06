@@ -431,6 +431,11 @@ isOneToOne: false
 "confirm_payment":
 { Args: { "p_amount": number,"p_approved_at": string,"p_order_id": string,"p_payment_key": string }; Returns: string
                            },
+"contact_page":
+{ Args: { "p_branch_id": string,"p_group_id": string,"p_limit": number,"p_offset": number,"p_query": string,"p_status": string }; Returns: {
+              "branch_id": string,"branch_name": string,"consent_at": string,"created_at": string,"group_ids": (string)[],"id": string,"memo": string,"name": string,"phone": string,"receive_status": string,"total_count": number
+            }[]
+                           },
 "create_trial_org":
 { Args: { "p_user_id": string }; Returns: string
                            },
@@ -443,6 +448,9 @@ isOneToOne: false
 "create_trial_org_before_events":
 { Args: { "p_user_id": string }; Returns: string
                            },
+"create_trial_org_before_links":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
 "create_trial_org_before_review":
 { Args: { "p_user_id": string }; Returns: string
                            },
@@ -451,6 +459,9 @@ isOneToOne: false
                            },
 "delete_expired_trials":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"link_trial_messages":
+{ Args: { "p_org_id": string }; Returns: undefined
                            },
 "preview_retry":
 { Args: { "p_hopeless_codes": (string)[],"p_message_ids": (number)[],"p_org_id": string,"p_source_id": string }; Returns: {
