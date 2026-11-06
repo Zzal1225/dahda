@@ -160,8 +160,8 @@ describe("create_trial_org", () => {
 
     expect(view).toEqual({
       // 승인 전에는 차감하지 않는다.
-      pending_approval: { branch: "성수점", messages: 30, ledger: [] },
-      scheduled: { branch: "합정점", messages: 30, ledger: ["reserve"] },
+      pending_approval: { branch: "성수점", messages: 48, ledger: [] },
+      scheduled: { branch: "합정점", messages: 75, ledger: ["reserve"] },
       // 반려하면 메시지를 지운다.
       rejected: { branch: "망원점", messages: 0, ledger: [] },
     });
@@ -195,6 +195,63 @@ describe("create_trial_org", () => {
       .eq("org_id", orgId)
       .eq("messages.status", "queued");
     expect(queued.count).toBe(0);
+  });
+
+  it("보낸 샘플은 인원·진행·실패가 서로 다르고 집계가 메시지와 맞는다", async () => {
+    const { orgId } = await createTrialUser();
+    const campaigns = must(
+      await service
+        .from("campaigns")
+        .select(
+          "id, status, recipient_count, sent_count, delivered_count, failed_count, started_at",
+        )
+        .eq("org_id", orgId)
+        .in("status", ["sending", "completed"]),
+    );
+
+    // 같은 모양이 반복되지 않는다.
+    expect(new Set(campaigns.map((c) => c.recipient_count)).size).toBe(
+      campaigns.length,
+    );
+    expect(new Set(campaigns.map((c) => c.started_at)).size).toBe(
+      campaigns.length,
+    );
+    expect(campaigns.filter((c) => c.status === "sending")).toHaveLength(2);
+
+    for (const campaign of campaigns) {
+      const count = async (status: "delivered" | "failed" | "sent") =>
+        (
+          await service
+            .from("messages")
+            .select("id", { count: "exact", head: true })
+            .eq("campaign_id", campaign.id)
+            .eq("status", status)
+        ).count;
+      expect(await count("delivered")).toBe(campaign.delivered_count);
+      expect(await count("failed")).toBe(campaign.failed_count);
+      expect(await count("sent")).toBe(
+        campaign.sent_count - campaign.delivered_count - campaign.failed_count,
+      );
+      // 끝난 건은 확인 중이 없다.
+      if (campaign.status === "completed") expect(await count("sent")).toBe(0);
+    }
+  });
+
+  it("광고 샘플은 규칙대로 (광고)·전송자·무료거부를 갖고 제목이 서로 다르다", async () => {
+    const { orgId } = await createTrialUser();
+    const ads = must(
+      await service
+        .from("campaigns")
+        .select("body")
+        .eq("org_id", orgId)
+        .eq("is_ad", true),
+    );
+    for (const { body } of ads) {
+      expect(body.startsWith("(광고)dahda마트")).toBe(true);
+      expect(body.endsWith("무료거부 080-000-0000")).toBe(true);
+    }
+    const titles = ads.map(({ body }) => body.split("\n")[1]);
+    expect(new Set(titles).size).toBe(ads.length);
   });
 
   it("두 번 불러도 본사가 하나만 생긴다", async () => {

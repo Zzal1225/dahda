@@ -18,13 +18,10 @@ async function Home() {
 
 function HomeSkeleton() {
   return (
-    <div aria-hidden className="flex max-w-[1200px] flex-col gap-5">
-      <div className="h-14 w-64 rounded-sm bg-skeleton" />
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="h-32 rounded-lg bg-skeleton" />
-        <div className="h-32 rounded-lg bg-skeleton" />
-        <div className="h-32 rounded-lg bg-skeleton" />
-      </div>
+    // 실제 화면과 같은 폭(data-wide)과 같은 띠 모양으로 둔다. 다르면 내용이 들어올 때 화면이 튄다.
+    <div data-wide aria-hidden className="flex w-full flex-col gap-5">
+      <div className="h-14 w-80 rounded-sm bg-skeleton" />
+      <div className="h-36 rounded-lg bg-skeleton" />
       <div className="h-64 rounded-lg bg-skeleton" />
     </div>
   );

@@ -74,8 +74,11 @@ test.describe("승인함", () => {
       page.getByRole("heading", { name: /승인 대기 1건/ }),
     ).toBeVisible();
 
+    // 지점은 승인함에 머물 수 없어 첫 화면으로 돌아간다. 첫 화면은 잔액 칸에 잔액을 보인다.
     await switchTo(page, "지점 · 성수점");
-    await expect(page.getByRole("banner")).toContainText("₩1,999,520");
+    await expect(
+      page.getByRole("region", { name: "잔액", exact: true }),
+    ).toContainText("₩1,999,520");
     await page.goto("/history");
     await page
       .getByRole("table", { name: "발송 건" })
@@ -109,7 +112,9 @@ test.describe("승인함", () => {
     await expect(page).toHaveURL(/done=rejected/);
 
     await switchTo(page, "지점 · 망원점");
-    await expect(page.getByRole("banner")).toContainText("₩1,310,400");
+    await expect(
+      page.getByRole("region", { name: "잔액", exact: true }),
+    ).toContainText("₩1,310,400");
     await page.goto("/history");
     await page
       .getByRole("table", { name: "발송 건" })

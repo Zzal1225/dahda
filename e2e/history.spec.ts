@@ -22,11 +22,11 @@ test.describe("발송 내역", () => {
   }) => {
     await openHistoryAsTrial(page);
 
-    // 계정 4개 × 2건 + 승인 대기·예약·반려 3건. 본사는 전 지점을 본다.
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(12);
+    // 보낸 7건 + 승인 대기·예약·반려 3건. 본사는 전 지점을 본다.
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(11);
 
     await campaignTable(page)
-      .getByRole("row", { name: /성수점 이번 주 특가/ })
+      .getByRole("row", { name: /합정점 \[영업시간 변경/ })
       .click();
 
     await expect(page).toHaveURL(/campaign=/);
@@ -41,7 +41,7 @@ test.describe("발송 내역", () => {
     await expect(page.getByText("1–100 / 120건")).toBeVisible();
     await expect(
       campaignTable(page).getByRole("row", { selected: true }),
-    ).toContainText("성수점");
+    ).toContainText("합정점");
   });
 
   test("상태와 번호 필터가 URL에 남고, 선택은 필터를 바꾸면 비워진다", async ({
@@ -49,7 +49,7 @@ test.describe("발송 내역", () => {
   }) => {
     await openHistoryAsTrial(page);
     await campaignTable(page)
-      .getByRole("row", { name: /망원점 이번 주 특가/ })
+      .getByRole("row", { name: /망원점 김장 재료/ })
       .click();
     const rows = recipientTable(page).locator("[data-row]");
     await expect(rows.first()).toBeVisible();
@@ -61,17 +61,17 @@ test.describe("발송 내역", () => {
     await statusGroup.getByRole("button", { name: /실패/ }).click();
 
     await expect(page).toHaveURL(/status=failed/);
-    await expect(page.getByText("1–8 / 8건")).toBeVisible();
-    await expect(rows).toHaveCount(8);
+    await expect(page.getByText("1–6 / 6건")).toBeVisible();
+    await expect(rows).toHaveCount(6);
     await expect(page.getByText("건 선택")).toHaveCount(0);
     await expect(rows.first()).toContainText("실패");
 
     await page.reload();
-    await expect(page.getByText("1–8 / 8건")).toBeVisible();
+    await expect(page.getByText("1–6 / 6건")).toBeVisible();
 
     await page.getByRole("button", { name: "모두 지우기" }).click();
     await expect(page).not.toHaveURL(/status=/);
-    await expect(page.getByText("1–100 / 120건")).toBeVisible();
+    await expect(page.getByText("1–100 / 154건")).toBeVisible();
 
     await page
       .getByRole("searchbox", { name: "수신번호 검색" })
@@ -85,7 +85,7 @@ test.describe("발송 내역", () => {
   test("페이지 크기를 바꾸고 이전·다음으로 이동한다", async ({ page }) => {
     await openHistoryAsTrial(page);
     await campaignTable(page)
-      .getByRole("row", { name: /합정점 이번 주 특가/ })
+      .getByRole("row", { name: /합정점 \[영업시간 변경/ })
       .click();
     await expect(page.getByText("1–100 / 120건")).toBeVisible();
 
@@ -127,7 +127,8 @@ test.describe("발송 내역", () => {
       .getByRole("link", { name: "발송 내역" })
       .click();
 
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(4);
+    // 합정점은 지난 발송 1건과 예약 1건이다.
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(3);
     await expect(campaignTable(page)).not.toContainText("성수점");
     await expect(page.getByRole("combobox", { name: "지점" })).toHaveCount(0);
     await expect(
@@ -140,7 +141,7 @@ test.describe("발송 내역", () => {
   }) => {
     await openHistoryAsTrial(page);
     await campaignTable(page)
-      .getByRole("row", { name: /성수점 이번 주 특가/ })
+      .getByRole("row", { name: /성수점 \[주차장 공사/ })
       .click();
     await expect(page).toHaveURL(/campaign=/);
     const seongsuUrl = page.url();
@@ -160,7 +161,7 @@ test.describe("발송 내역", () => {
     // 접힌 사이드바의 메뉴 이름은 "내역"이라 넓은 화면에서 들어간 뒤 폭을 줄인다.
     await openHistoryAsTrial(page);
     await page.setViewportSize({ width: 800, height: 900 });
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(12);
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(11);
     const row = campaignTable(page).getByRole("row").nth(1);
 
     const title = row.getByRole("cell").nth(2);
@@ -201,10 +202,10 @@ test.describe("발송 내역", () => {
       page.getByRole("note").filter({ hasText: "반려 사유" }),
     ).toContainText("수신 동의 확인이 필요해요");
 
-    // 완료 4건 모두 실패가 섞여 있고, 확인 중 4건도 실패가 생겼다.
+    // 보낸 7건 중 성수점 "주말 과일 할인"만 모두 도착했다. 진행 중인 건도 실패가 있으면 잡힌다.
     await state.selectOption({ label: "실패 포함" });
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(9);
-    await expect(campaignTable(page)).toContainText("실패 8");
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(7);
+    await expect(campaignTable(page)).toContainText("실패 18");
 
     // nuqs는 주소를 조금 늦게 쓰므로, 주소가 바뀐 것을 본 뒤에 새로고침한다.
     await expect(page).toHaveURL(/state=has_failed/);
@@ -217,7 +218,7 @@ test.describe("발송 내역", () => {
   }) => {
     await openHistoryAsTrial(page);
     await campaignTable(page)
-      .getByRole("row", { name: /성수점 이번 주 특가/ })
+      .getByRole("row", { name: /성수점 \[주차장 공사/ })
       .click();
     const search = page.getByRole("searchbox", { name: "수신번호 검색" });
 
@@ -247,7 +248,7 @@ test.describe("발송 내역", () => {
 
     await page.goto("/history?period=1y&ad=x&page=-1&size=999&sort=hack.up");
 
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(12);
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(11);
     await expect(page.getByRole("radio", { name: "7일" })).toBeChecked();
   });
 });

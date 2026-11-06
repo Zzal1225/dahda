@@ -38,6 +38,15 @@ export function formatKstDateTime(value: Date | string): string {
   return `${date} ${minute}`;
 }
 
+/** 11월 6일(금). 첫 화면 제목처럼 연도가 필요 없는 오늘 표시에 쓴다. */
+export function formatKstMonthDayWeekday(value: Date | string): string {
+  const { day } = parts(value);
+  const [, month, date] = day.split("-").map(Number);
+  // 요일은 KST 날짜 문자열을 UTC 자정으로 읽어 구한다. 실행 환경의 시간대와 무관하다.
+  const weekday = WEEKDAYS[new Date(`${day}T00:00:00Z`).getUTCDay()];
+  return `${month}월 ${date}일(${weekday})`;
+}
+
 /** 14:30:05 */
 export function formatKstTime(value: Date | string): string {
   return parts(value).second;
