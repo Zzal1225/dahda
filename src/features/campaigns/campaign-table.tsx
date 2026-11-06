@@ -17,6 +17,7 @@ import {
   campaignStatusView,
   campaignTitle,
   messageCounts,
+  progressText,
   type CampaignRow,
 } from "./campaign-view";
 
@@ -77,12 +78,20 @@ function buildColumns(showBranch: boolean): DataTableColumn<CampaignRow>[] {
     column.display({
       id: "progress",
       header: "진행률",
-      meta: { width: "128px" },
+      meta: { width: "140px" },
       cell: ({ row }) => (
-        <ProgressBar
-          counts={messageCounts(row.original)}
-          total={row.original.recipientCount}
-        />
+        <div className="flex w-full flex-col gap-1">
+          {/* 보내기 전에는 빈 막대가 0%로 읽혀 실패처럼 보이므로 글자만 둔다. */}
+          {row.original.sentCount > 0 && (
+            <ProgressBar
+              counts={messageCounts(row.original)}
+              total={row.original.recipientCount}
+            />
+          )}
+          <span className="text-caption text-text-muted">
+            {progressText(row.original)}
+          </span>
+        </div>
       ),
     }),
     column.display({

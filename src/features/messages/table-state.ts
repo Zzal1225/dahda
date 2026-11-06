@@ -11,6 +11,21 @@ export type Period = (typeof PERIODS)[number];
 export const AD_FILTERS = ["all", "ad", "non_ad"] as const;
 export type AdFilter = (typeof AD_FILTERS)[number];
 
+/**
+ * 발송 건 상태 필터. DB 상태 그대로가 아니다. 운영자가 매일 찾는 "실패가 있는 건"은 상태가 아니라 집계로 정해지고,
+ * 작성 중은 발송 내역에 나오지 않으므로 뺐다. 메시지 상태(status)와 키가 겹치지 않게 URL에서는 state로 쓴다.
+ */
+export const CAMPAIGN_STATE_FILTERS = [
+  "pending_approval",
+  "scheduled",
+  "sending",
+  "completed",
+  "has_failed",
+  "rejected",
+  "canceled",
+] as const;
+export type CampaignStateFilter = (typeof CAMPAIGN_STATE_FILTERS)[number];
+
 export const PAGE_SIZES = [50, 100, 500] as const;
 export type PageSize = (typeof PAGE_SIZES)[number];
 
@@ -25,6 +40,8 @@ export type TableFilters = {
   to: string | null;
   branch: string | null;
   ad: AdFilter;
+  /** 발송 건 목록을 거른다. null이면 전체다. */
+  state: CampaignStateFilter | null;
   status: MessageRow["status"][];
   q: string;
 };
@@ -35,6 +52,7 @@ export const DEFAULT_FILTERS: TableFilters = {
   to: null,
   branch: null,
   ad: "all",
+  state: null,
   status: [],
   q: "",
 };

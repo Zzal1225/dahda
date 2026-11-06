@@ -22,8 +22,8 @@ test.describe("발송 내역", () => {
   }) => {
     await openHistoryAsTrial(page);
 
-    // 계정 4개 × 2건. 본사는 전 지점을 본다.
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(9);
+    // 계정 4개 × 2건 + 승인 대기·예약·반려 3건. 본사는 전 지점을 본다.
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(12);
 
     await campaignTable(page)
       .getByRole("row", { name: /성수점 이번 주 특가/ })
@@ -127,7 +127,7 @@ test.describe("발송 내역", () => {
       .getByRole("link", { name: "발송 내역" })
       .click();
 
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(3);
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(4);
     await expect(campaignTable(page)).not.toContainText("성수점");
     await expect(page.getByRole("combobox", { name: "지점" })).toHaveCount(0);
     await expect(
@@ -150,7 +150,7 @@ test.describe("발송 내역", () => {
     await expect(page.getByRole("banner")).toContainText("망원점");
 
     await page.goto(seongsuUrl);
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(3);
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(4);
     await expect(recipientTable(page)).toHaveCount(0);
   });
 
@@ -160,7 +160,7 @@ test.describe("발송 내역", () => {
     // 접힌 사이드바의 메뉴 이름은 "내역"이라 넓은 화면에서 들어간 뒤 폭을 줄인다.
     await openHistoryAsTrial(page);
     await page.setViewportSize({ width: 800, height: 900 });
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(9);
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(12);
     const row = campaignTable(page).getByRole("row").nth(1);
 
     const title = row.getByRole("cell").nth(2);
@@ -184,12 +184,40 @@ test.describe("발송 내역", () => {
     expect(overflow).toBe(0);
   });
 
+  test("발송 건 상태로 거르면 주소에 남고 상태마다 숫자 대신 안내가 보인다", async ({
+    page,
+  }) => {
+    await openHistoryAsTrial(page);
+    const state = page.getByRole("combobox", { name: "발송 건 상태" });
+
+    await state.selectOption({ label: "승인 대기" });
+    await expect(page).toHaveURL(/state=pending_approval/);
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(2);
+    await expect(campaignTable(page)).toContainText("승인 후 발송");
+
+    await state.selectOption({ label: "반려" });
+    await campaignTable(page).getByRole("row").nth(1).click();
+    await expect(
+      page.getByRole("note").filter({ hasText: "반려 사유" }),
+    ).toContainText("수신 동의 확인이 필요해요");
+
+    // 완료 4건 모두 실패가 섞여 있고, 확인 중 4건도 실패가 생겼다.
+    await state.selectOption({ label: "실패 포함" });
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(9);
+    await expect(campaignTable(page)).toContainText("실패 8");
+
+    // nuqs는 주소를 조금 늦게 쓰므로, 주소가 바뀐 것을 본 뒤에 새로고침한다.
+    await expect(page).toHaveURL(/state=has_failed/);
+    await page.reload();
+    await expect(state).toHaveValue("has_failed");
+  });
+
   test("잘못된 URL 값이 있어도 화면이 깨지지 않는다", async ({ page }) => {
     await openHistoryAsTrial(page);
 
     await page.goto("/history?period=1y&ad=x&page=-1&size=999&sort=hack.up");
 
-    await expect(campaignTable(page).getByRole("row")).toHaveCount(9);
+    await expect(campaignTable(page).getByRole("row")).toHaveCount(12);
     await expect(page.getByRole("radio", { name: "7일" })).toBeChecked();
   });
 });

@@ -59,6 +59,38 @@ export function messageCounts(campaign: CampaignRow): MessageCounts {
   };
 }
 
+/**
+ * 진행률 막대 아래 숫자. 색 막대만으로는 몇 건이 실패했는지 읽을 수 없다.
+ * 칸이 좁아 도착 비율과 실패 수만 쓴다. 확인 중·대기는 막대의 무늬와 aria-label이 맡는다.
+ * 비율은 내림이다. 반올림하면 1건이 남아도 100%로 보여 끝난 것처럼 읽힌다.
+ */
+export function progressText(
+  campaign: Pick<
+    CampaignRow,
+    "status" | "recipientCount" | "deliveredCount" | "failedCount"
+  >,
+): string {
+  switch (campaign.status) {
+    case "draft":
+    case "pending_approval":
+      return "승인 후 발송";
+    case "scheduled":
+      return "발송 전";
+    case "rejected":
+    case "canceled":
+      return "보내지 않음";
+  }
+  const percent =
+    campaign.recipientCount === 0
+      ? 0
+      : Math.floor((campaign.deliveredCount / campaign.recipientCount) * 100);
+  const failed =
+    campaign.failedCount > 0
+      ? ` · 실패 ${campaign.failedCount.toLocaleString("ko-KR")}`
+      : "";
+  return `도착 ${percent}%${failed}`;
+}
+
 export type CampaignCost = { estimated: boolean; amount: number };
 
 const NOT_SENT_YET: readonly CampaignStatus[] = [

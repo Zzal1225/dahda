@@ -133,6 +133,47 @@ describe("create_trial_org", () => {
     });
   });
 
+  it("승인 대기·예약·반려 샘플을 실제 함수와 같은 모양으로 만든다", async () => {
+    const { orgId } = await createTrialUser();
+    const branches = new Map(
+      (await branchesOf(orgId)).map((b) => [b.id, b.name]),
+    );
+    const campaigns = must(
+      await service
+        .from("campaigns")
+        .select(
+          "id, branch_id, status, is_ad, scheduled_at, rejected_reason, messages(count), ledger_entries(kind)",
+        )
+        .eq("org_id", orgId)
+        .in("status", ["pending_approval", "scheduled", "rejected"]),
+    );
+    const view = Object.fromEntries(
+      campaigns.map((c) => [
+        c.status,
+        {
+          branch: c.branch_id ? branches.get(c.branch_id) : "본사",
+          messages: c.messages[0]?.count,
+          ledger: c.ledger_entries.map((e) => e.kind),
+        },
+      ]),
+    );
+
+    expect(view).toEqual({
+      // 승인 전에는 차감하지 않는다.
+      pending_approval: { branch: "성수점", messages: 30, ledger: [] },
+      scheduled: { branch: "합정점", messages: 30, ledger: ["reserve"] },
+      // 반려하면 메시지를 지운다.
+      rejected: { branch: "망원점", messages: 0, ledger: [] },
+    });
+    const scheduled = campaigns.find((c) => c.status === "scheduled");
+    expect(new Date(scheduled?.scheduled_at ?? 0).getTime()).toBeGreaterThan(
+      Date.now(),
+    );
+    expect(
+      campaigns.find((c) => c.status === "rejected")?.rejected_reason,
+    ).toBeTruthy();
+  });
+
   it("두 번 불러도 본사가 하나만 생긴다", async () => {
     const { userId, orgId } = await createTrialUser();
 

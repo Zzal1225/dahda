@@ -129,6 +129,7 @@ export function HistoryScreen({
         to: range.to,
         branch: filters.branch,
         ad: filters.ad,
+        state: filters.state,
       },
     ],
     queryFn: ({ signal }) => {
@@ -136,6 +137,7 @@ export function HistoryScreen({
       if (range.from) params.set("from", range.from);
       if (range.to) params.set("to", range.to);
       if (filters.branch) params.set("branch", filters.branch);
+      if (filters.state) params.set("state", filters.state);
       return fetchCampaigns(params, signal);
     },
     // 구독이 끊긴 동안만 폴링한다. 안 하면 끊긴 사실을 모른 채 화면이 멈춘다.

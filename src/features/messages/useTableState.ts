@@ -11,6 +11,7 @@ import { useCallback, useMemo, useState } from "react";
 import { MESSAGE_STATUSES } from "./message-query";
 import {
   AD_FILTERS,
+  CAMPAIGN_STATE_FILTERS,
   DEFAULT_FILTERS,
   DEFAULT_PAGE_SIZE,
   DEFAULT_SORT,
@@ -57,6 +58,7 @@ const urlParsers = {
   to: parseAsString,
   branch: parseAsString,
   ad: parseAsStringLiteral(AD_FILTERS).withDefault(DEFAULT_FILTERS.ad),
+  state: parseAsStringLiteral(CAMPAIGN_STATE_FILTERS),
   status: parseAsArrayOf(parseAsStringLiteral(MESSAGE_STATUSES)).withDefault(
     DEFAULT_FILTERS.status,
   ),
@@ -73,6 +75,7 @@ function countActiveFilters(filters: TableFilters): number {
     filters.period !== DEFAULT_FILTERS.period,
     filters.branch !== DEFAULT_FILTERS.branch,
     filters.ad !== DEFAULT_FILTERS.ad,
+    filters.state !== DEFAULT_FILTERS.state,
     filters.status.length > 0,
     filters.q !== DEFAULT_FILTERS.q,
   ];
@@ -168,10 +171,20 @@ export function useTableState(): TableState {
       to: url.to,
       branch: url.branch,
       ad: url.ad,
+      state: url.state,
       status: url.status,
       q: url.q,
     }),
-    [url.period, url.from, url.to, url.branch, url.ad, url.status, url.q],
+    [
+      url.period,
+      url.from,
+      url.to,
+      url.branch,
+      url.ad,
+      url.state,
+      url.status,
+      url.q,
+    ],
   );
 
   return {
