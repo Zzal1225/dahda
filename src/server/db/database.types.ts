@@ -420,6 +420,9 @@ isOneToOne: false
 "create_trial_org_before_consent":
 { Args: { "p_user_id": string }; Returns: string
                            },
+"create_trial_org_before_review":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
 "create_trial_org_with_contacts":
 { Args: { "p_user_id": string }; Returns: string
                            },
