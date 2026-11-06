@@ -149,12 +149,25 @@ export function HistoryScreen({
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-title-lg">발송 내역</h1>
-        <Link href="/history/sample" className="text-body-sm underline">
+      <h1 className="text-title-lg">발송 내역</h1>
+
+      {/* 제목 옆 작은 링크는 처음 온 사람이 지나쳤다. 목록에 고정 행으로 넣으면 필터·건수·재발송에
+          예외가 생겨, 목록 밖에 눈에 띄는 안내로 둔다. */}
+      <aside
+        aria-label="10만 행 샘플 안내"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary bg-primary-subtle px-5 py-3"
+      >
+        <p className="text-body-sm">
+          <b>수신자 10만 명 발송 1건</b>을 한 표에서 끊김 없이 스크롤해 볼 수
+          있어요. 모든 방문자가 함께 보는 읽기 전용 샘플이에요.
+        </p>
+        <Link
+          href="/history/sample"
+          className="flex-none text-body-sm font-bold text-primary underline"
+        >
           10만 행 샘플 보기
         </Link>
-      </div>
+      </aside>
 
       <HistoryFilters
         state={state}
