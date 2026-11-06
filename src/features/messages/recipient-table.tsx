@@ -624,6 +624,9 @@ export function RecipientTable({
       <div className="flex flex-wrap items-center gap-3 border-t border-border p-3">
         {/* 페이지네이션이 아니다. 전체 행이 한 스크롤이고, 이 값은 서버에서 한 번에 받는 묶음 크기다.
             "페이지 크기"라고 쓰면 표가 나뉘어 있다고 오해해 가상화가 하는 일이 보이지 않는다. */}
+        <span aria-hidden className="text-caption text-text-muted">
+          한 번에 받는 행
+        </span>
         <Segmented
           label="한 번에 받는 행"
           value={pageSize}
