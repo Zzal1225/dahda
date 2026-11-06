@@ -94,6 +94,8 @@ test.describe("승인함", () => {
     await requestAd(page, "망원점", "봄 행사 안내");
 
     await switchTo(page, /본사 관리자/);
+    // 전환이 끝나기 전에 이동하면 아직 지점이라 승인함에서 첫 화면으로 돌아간다.
+    await expect(page.getByRole("banner")).toContainText("전체 지점");
     await page.goto("/approvals");
     await page.getByRole("link", { name: /봄 행사 안내/ }).click();
 
