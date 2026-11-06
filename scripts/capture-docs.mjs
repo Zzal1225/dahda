@@ -12,11 +12,18 @@ const env = Object.fromEntries(
   readFileSync(new URL("../.env.local", import.meta.url), "utf8")
     .split(/\r?\n/)
     .filter((line) => line.includes("="))
-    .map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)]),
+    .map((line) => [
+      line.slice(0, line.indexOf("=")),
+      line.slice(line.indexOf("=") + 1),
+    ]),
 );
-const service = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const service = createClient(
+  env.NEXT_PUBLIC_SUPABASE_URL,
+  env.SUPABASE_SECRET_KEY,
+  {
+    auth: { persistSession: false, autoRefreshToken: false },
+  },
+);
 const OUT = new URL("../docs/assets/", import.meta.url);
 
 const browser = await chromium.launch();
@@ -92,7 +99,11 @@ await shot("sample-100k", page.locator("main"));
 await switchTo(/지점 · 성수점/);
 await page.getByRole("banner").getByText("성수점").waitFor();
 await page.goto(`${BASE}/contacts`);
-await page.getByRole("table", { name: "연락처" }).locator("[data-row]").first().waitFor();
+await page
+  .getByRole("table", { name: "연락처" })
+  .locator("[data-row]")
+  .first()
+  .waitFor();
 await shot("contacts", page.locator("main"));
 
 // 5. 엑셀 업로드: 체험용 샘플(1만 행) → 열 매핑 → 결과 요약(추가·중복·형식 오류·수신거부 제외·처리 시간)
