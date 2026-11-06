@@ -44,6 +44,44 @@ test.describe("발송 내역", () => {
     ).toContainText("합정점");
   });
 
+  test("도착 확인증은 보낸 건에만 있고, 모두 도착한 건에만 도장이 찍힌다", async ({
+    page,
+  }) => {
+    await openHistoryAsTrial(page);
+    const receipt = page.getByRole("region", { name: "도착 확인증" });
+    const stages = receipt
+      .getByRole("list", { name: "발송 단계" })
+      .getByRole("listitem");
+
+    await campaignTable(page)
+      .getByRole("row", { name: /성수점 주말 과일 할인/ })
+      .click();
+    await expect(stages).toHaveCount(4);
+    await expect(stages.nth(3)).toContainText("30건");
+    await expect(receipt.getByText("도착 확인", { exact: true })).toBeVisible();
+    await expect(receipt).toContainText(/No\. [0-9A-F]{8}/);
+
+    // 실패 3건이 있는 건. 통신사까지 갔으니 통신사 전달은 212, 도착은 209다.
+    await campaignTable(page)
+      .getByRole("row", { name: /성수점 \[주차장 공사/ })
+      .click();
+    await expect(stages.nth(2)).toContainText("212건");
+    await expect(stages.nth(3)).toContainText("209건");
+    await expect(receipt.getByText("도착 확인", { exact: true })).toHaveCount(
+      0,
+    );
+    // 건이 바뀌면 이전 확인증이 남지 않는다.
+    await expect(receipt).toHaveCount(1);
+
+    await campaignTable(page)
+      .getByRole("row", { name: /합정점 \[정기 점검/ })
+      .click();
+    await expect(
+      recipientTable(page).locator("[data-row]").first(),
+    ).toBeVisible();
+    await expect(receipt).toHaveCount(0);
+  });
+
   test("상태와 번호 필터가 URL에 남고, 선택은 필터를 바꾸면 비워진다", async ({
     page,
   }) => {

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   homeTitle,
-  isFullyDelivered,
   smsEstimate,
   sortActive,
   timeUntil,
@@ -138,20 +137,4 @@ describe("sortActive", () => {
     ];
     expect(sortActive(rows).map((row) => row.id)).toEqual([3, 4, 2, 1]);
   });
-});
-
-describe("isFullyDelivered", () => {
-  it.each([
-    ["completed", 30, 30, true],
-    ["completed", 30, 29, false],
-    ["sending", 30, 30, false],
-    ["completed", 0, 0, false],
-  ] as const)(
-    "%s %d명 중 %d 도착 → %s",
-    (status, recipientCount, deliveredCount, expected) => {
-      expect(isFullyDelivered({ status, recipientCount, deliveredCount })).toBe(
-        expected,
-      );
-    },
-  );
 });

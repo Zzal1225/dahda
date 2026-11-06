@@ -4,10 +4,12 @@ import { ArrowLink } from "@/components/ui/arrow-link";
 import { buttonVariants } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { StatusStamp } from "@/components/ui/status-stamp";
 import { UNIT_PRICE } from "@/features/campaigns/campaignSchema";
 import {
   campaignStatusView,
   campaignTitle,
+  isFullyDelivered,
   messageCounts,
   type CampaignRow,
   type MessageCounts,
@@ -19,7 +21,6 @@ import { HomeLive } from "./home-live";
 import type { HomeData } from "./home-query";
 import {
   homeTitle,
-  isFullyDelivered,
   smsEstimate,
   timeUntil,
   toTodaySummary,
@@ -145,10 +146,7 @@ function ActiveProgress({
   if (isFullyDelivered(campaign)) {
     return (
       <div className="flex items-center gap-3">
-        {/* 도장처럼 살짝 기울인다. 막대가 꽉 찬 것보다 "끝났다"가 먼저 읽힌다. */}
-        <span className="inline-block -rotate-[4deg] rounded-sm border border-status-delivered px-2 py-0.5 text-caption font-bold text-status-delivered">
-          도착 확인
-        </span>
+        <StatusStamp>도착 확인</StatusStamp>
         <span className="text-caption text-text-muted tabular-nums">
           {won(campaign.recipientCount)}명 모두 도착
         </span>

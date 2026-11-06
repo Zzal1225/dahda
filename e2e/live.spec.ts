@@ -91,8 +91,17 @@ test.describe("실시간 진행률", () => {
     await expect(selectedRow(page)).toContainText("확인 중");
     await expect(page.getByText(/실시간 갱신 중/)).toBeVisible();
     await expect(selectedRow(page)).toContainText("완료", { timeout: 8000 });
-    await expect(page.getByText("결과 확정")).toBeVisible();
+    await expect(
+      page.getByText("결과 확정 · 더 이상 바뀌지 않아요"),
+    ).toBeVisible();
     await expect(page.getByText(/실시간 갱신 중/)).toHaveCount(0);
+
+    // 도착 확인증도 새로고침 없이 확정까지 따라온다(수신자 표와 같은 무효화로 다시 읽는다).
+    const receipt = page.getByRole("region", { name: "도착 확인증" });
+    await expect(receipt).toContainText(/결과 확정 \d{2}:\d{2}:\d{2}/);
+    await expect(
+      receipt.getByRole("list", { name: "발송 단계" }).getByRole("listitem"),
+    ).toHaveCount(4);
 
     // 수신자 표도 함께 바뀐다.
     await expect(
