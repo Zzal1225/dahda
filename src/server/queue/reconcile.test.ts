@@ -6,6 +6,7 @@ import {
   runReconcileTick,
   type StaleMessage,
 } from "./reconcile";
+import type { MessageEventLog } from "./event-log";
 import type { MessageUpdate } from "./worker";
 
 const NOW = new Date("2026-11-08T00:00:00Z");
@@ -36,6 +37,7 @@ function setup(
 ) {
   const saved: MessageUpdate[] = [];
   const settled: string[] = [];
+  const logs: MessageEventLog[] = [];
   const store = {
     listStaleSent: vi.fn(async () => messages),
     applyUpdates: vi.fn(async (updates: readonly MessageUpdate[]) => {
@@ -45,6 +47,9 @@ function setup(
     settleCampaigns: vi.fn(async (ids: readonly string[]) => {
       settled.push(...ids);
     }),
+    recordEvents: vi.fn(async (events: readonly MessageEventLog[]) => {
+      logs.push(...events);
+    }),
   };
   const provider = {
     name: "solapi",
@@ -52,7 +57,7 @@ function setup(
   } as unknown as SmsProvider;
   const run = () =>
     runReconcileTick({ store, providerFor: () => provider, now: () => NOW });
-  return { store, saved, settled, run };
+  return { store, saved, settled, logs, run };
 }
 
 describe("runReconcileTick", () => {
@@ -147,6 +152,36 @@ describe("runReconcileTick", () => {
     store.applyUpdates.mockResolvedValueOnce([]);
     await run();
     expect(settled).toEqual([]);
+  });
+
+  it("조회 결과를 기록하고, 웹훅에 밀린 결과는 무시했다고 남긴다", async () => {
+    const { store, logs, run } = setup([stale(1, 2), stale(2, 2)], async () => [
+      { providerMessageId: "p1", status: "delivered", occurredAt: null },
+      { providerMessageId: "p2", status: "delivered", occurredAt: null },
+    ]);
+    store.applyUpdates.mockResolvedValueOnce([1]);
+    await run();
+    expect(
+      logs.map(({ messageId, source, kind, outcome }) => ({
+        messageId,
+        source,
+        kind,
+        outcome,
+      })),
+    ).toEqual([
+      {
+        messageId: 1,
+        source: "reconcile",
+        kind: "delivered",
+        outcome: "applied",
+      },
+      {
+        messageId: 2,
+        source: "reconcile",
+        kind: "delivered",
+        outcome: "ignored_final",
+      },
+    ]);
   });
 
   it("같은 발송 건은 한 번만 정산한다", async () => {

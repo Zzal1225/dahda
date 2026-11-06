@@ -63,6 +63,7 @@ describe("조회 범위", () => {
     "sender_numbers",
     "campaigns",
     "messages",
+    "message_events",
     "payments",
     "ledger_entries",
     "account_balances",

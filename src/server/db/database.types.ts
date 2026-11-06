@@ -231,6 +231,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"message_events": {
+                  Row: {
+                    "branch_id": string | null,"fail_code": string | null,"id": number,"kind": string,"message_id": number,"occurred_at": string,"org_id": string,"outcome": string,"received_at": string,"source": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "branch_id"?: string | null,"fail_code"?: string | null,"id"?: never,"kind": string,"message_id": number,"occurred_at": string,"org_id": string,"outcome": string,"received_at"?: string,"source": string
+                  }
+                  Update: {
+                    "branch_id"?: string | null,"fail_code"?: string | null,"id"?: never,"kind"?: string,"message_id"?: number,"occurred_at"?: string,"org_id"?: string,"outcome"?: string,"received_at"?: string,"source"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "message_events_message_id_fkey"
+      columns: ["message_id"]
+isOneToOne: false
+      referencedRelation: "messages"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"messages": {
                   Row: {
                     "attempt_count": number,"branch_id": string | null,"campaign_id": string,"created_at": string,"fail_code": string | null,"finalized_at": string | null,"id": number,"idempotency_key": string,"next_attempt_at": string,"org_id": string,"phone": string,"provider": string | null,"provider_message_id": string | null,"recipient_name": string | null,"sent_at": string | null,"status": Database["public"]['Enums']["message_status"]
@@ -420,6 +440,9 @@ isOneToOne: false
 "create_trial_org_before_consent":
 { Args: { "p_user_id": string }; Returns: string
                            },
+"create_trial_org_before_events":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
 "create_trial_org_before_review":
 { Args: { "p_user_id": string }; Returns: string
                            },
@@ -433,6 +456,9 @@ isOneToOne: false
 { Args: { "p_hopeless_codes": (string)[],"p_message_ids": (number)[],"p_org_id": string,"p_source_id": string }; Returns: {
               "balance": number,"failed_count": number,"hopeless_count": number,"kind": Database["public"]['Enums']["campaign_kind"],"target_count": number,"unit_price": number
             }[]
+                           },
+"record_message_events":
+{ Args: { "p_events": Json }; Returns: undefined
                            },
 "reject_campaign":
 { Args: { "p_campaign_id": string,"p_org_id": string,"p_reason": string,"p_reviewer": string }; Returns: undefined
@@ -448,6 +474,9 @@ isOneToOne: false
                            },
 "seed_public_sample":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"seed_sample_message_events":
+{ Args: { "p_org_id": string }; Returns: undefined
                            },
 "start_demo_send":
 { Args: { "p_body": string,"p_branch_id": string,"p_daily_limit": number,"p_org_id": string,"p_phone": string,"p_sender_phone": unknown,"p_unit_price": number,"p_user_id": string }; Returns: string

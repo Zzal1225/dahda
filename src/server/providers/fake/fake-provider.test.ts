@@ -105,6 +105,56 @@ describe("웹훅 지연", () => {
   );
 });
 
+describe("이상 웹훅", () => {
+  // 난수 순서: 이상 여부 → 지연(이상이 early면 생략) → 성공 여부
+  const sequence = (...values: number[]) => {
+    let index = 0;
+    return () => values[index++ % values.length] ?? 0.5;
+  };
+
+  it("기본값이면 중복도 즉시 전송도 없다", async () => {
+    const { provider, scheduled, delivered, flush } = setup();
+    await provider.send([requestOf("a")]);
+    expect(scheduled[0]?.delayMs).toBe(3000);
+    await flush();
+    expect(scheduled).toHaveLength(0);
+    expect(delivered).toHaveLength(1);
+  });
+
+  it("앞쪽 절반은 지연 없이 바로 보낸다", async () => {
+    const { provider, scheduled } = setup({
+      anomalyRate: 0.1,
+      random: sequence(0.01, 0.5),
+    });
+    await provider.send([requestOf("a")]);
+    expect(scheduled[0]?.delayMs).toBe(0);
+  });
+
+  it("뒤쪽 절반은 같은 웹훅을 한 번 더 보낸다", async () => {
+    const { provider, scheduled, delivered, flush } = setup({
+      anomalyRate: 0.1,
+      random: sequence(0.07, 0.5, 0.5),
+    });
+    await provider.send([requestOf("a")]);
+    await flush();
+    expect(scheduled).toHaveLength(1);
+    await flush();
+    await vi.waitFor(() => expect(delivered).toHaveLength(2));
+    expect(delivered[1]?.rawBody).toBe(delivered[0]?.rawBody);
+  });
+
+  it("비율 밖이면 평소와 같다", async () => {
+    const { provider, scheduled, flush } = setup({
+      anomalyRate: 0.1,
+      random: sequence(0.5),
+    });
+    await provider.send([requestOf("a")]);
+    expect(scheduled[0]?.delayMs).toBe(3000);
+    await flush();
+    expect(scheduled).toHaveLength(0);
+  });
+});
+
 describe("웹훅 결과", () => {
   it("실패율 경계: 난수가 실패율 미만일 때만 실패한다", async () => {
     // 호출 순서: 지연 → 성공 여부 → (실패면) 코드 선택

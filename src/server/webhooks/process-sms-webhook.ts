@@ -10,8 +10,11 @@ import type {
   WebhookEvent,
   WebhookRequest,
 } from "@/server/providers/sms-provider";
+import type { MessageEventLog } from "@/server/queue/event-log";
+import { recordSafely } from "@/server/queue/event-log";
 import {
   createSupabaseQueueStore,
+  recordMessageEvents,
   settleCampaigns,
 } from "@/server/queue/supabase-store";
 
@@ -83,15 +86,35 @@ export async function processSmsWebhook(options: {
   try {
     const results = new Set<EventResult>();
     const campaignIds = new Set<string>();
+    const logs: MessageEventLog[] = [];
     for (const event of events) {
-      const { result, campaignId } = await applyEvent(
+      const { result, campaignId, messageId } = await applyEvent(
         supabase,
         provider.name,
         event,
       );
       results.add(result);
       if (campaignId) campaignIds.add(campaignId);
+      // 우리 메시지로 확인된 것만 남긴다. 모르는 메시지는 연결할 행이 없고 webhook_events에 남아 있다.
+      if (
+        messageId !== null &&
+        result !== "unknown_message" &&
+        result !== "provider_mismatch"
+      ) {
+        logs.push({
+          messageId,
+          source: "webhook",
+          kind: event.status,
+          outcome: result,
+          failCode: event.status === "failed" ? event.failCode : null,
+          occurredAt: event.occurredAt,
+        });
+      }
     }
+    await recordSafely(
+      { recordEvents: (rows) => recordMessageEvents(supabase, rows) },
+      logs,
+    );
     // 중복 웹훅이어도 부른다. 앞선 처리가 정산 직전에 끊겼다면 재전송이 마무리해야 한다.
     await settleCampaigns(supabase, [...campaignIds]);
     await finish([...results].join(",") || "empty");
@@ -106,7 +129,11 @@ async function applyEvent(
   supabase: Db,
   providerName: string,
   event: WebhookEvent,
-): Promise<{ result: EventResult; campaignId: string | null }> {
+): Promise<{
+  result: EventResult;
+  campaignId: string | null;
+  messageId: number | null;
+}> {
   const store = createSupabaseQueueStore(supabase);
   const messageEvent: MessageEvent =
     event.status === "delivered"
@@ -124,9 +151,15 @@ async function applyEvent(
 
   for (let round = 0; round < CONFLICT_RETRIES; round += 1) {
     const row = await findMessage(supabase, providerName, event);
-    if (!row) return { result: "unknown_message", campaignId: null };
+    if (!row) {
+      return { result: "unknown_message", campaignId: null, messageId: null };
+    }
     if (row.provider !== null && row.provider !== providerName) {
-      return { result: "provider_mismatch", campaignId: null };
+      return {
+        result: "provider_mismatch",
+        campaignId: null,
+        messageId: null,
+      };
     }
 
     const state: MessageState = {
@@ -141,7 +174,11 @@ async function applyEvent(
       transition.outcome === "ignored_final" ||
       transition.outcome === "ignored_stale"
     ) {
-      return { result: transition.outcome, campaignId: row.campaign_id };
+      return {
+        result: transition.outcome,
+        campaignId: row.campaign_id,
+        messageId: row.id,
+      };
     }
 
     const applied = await store.applyUpdates([
@@ -153,7 +190,11 @@ async function applyEvent(
       },
     ]);
     if (applied.length > 0) {
-      return { result: transition.outcome, campaignId: row.campaign_id };
+      return {
+        result: transition.outcome,
+        campaignId: row.campaign_id,
+        messageId: row.id,
+      };
     }
     // 그 사이 워커나 다른 웹훅이 먼저 바꿨다. 다시 읽어 판단한다.
   }

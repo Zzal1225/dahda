@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { formatPhone } from "@/lib/format";
 import { formatKstTime } from "@/lib/kst";
 import { cn } from "@/lib/utils";
+import { MessageEventsDialog } from "./message-events-dialog";
 import type { MessagePage, MessageRow } from "./message-query";
 import {
   failReason,
@@ -255,6 +256,10 @@ export function RecipientTable({
   }, [rowByIndex, page, pageSize]);
 
   const { setPage, toggleRow, togglePage, toggleSort } = state;
+  const [eventsFor, setEventsFor] = useState<{
+    id: number;
+    phone: string;
+  } | null>(null);
 
   const columns = useMemo<DataTableColumn<MessageRow>[]>(
     () => [
@@ -363,6 +368,32 @@ export function RecipientTable({
         meta: { width: "52px", align: "right" },
         cell: ({ row }) => row.original.attemptCount,
       }),
+      // 공용 샘플은 기록을 만들지 않아 열지 않는다.
+      ...(readOnly
+        ? []
+        : [
+            column.display({
+              id: "events",
+              header: "기록",
+              meta: { width: "64px" },
+              cell: ({ row }) => (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={`${formatPhone(row.original.phone)} 기록 보기`}
+                  onClick={() =>
+                    setEventsFor({
+                      id: row.original.id,
+                      phone: row.original.phone,
+                    })
+                  }
+                  className="cursor-pointer text-caption text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                >
+                  보기
+                </button>
+              ),
+            }),
+          ]),
     ],
     [
       readOnly,
@@ -515,6 +546,12 @@ export function RecipientTable({
 
   return (
     <>
+      <MessageEventsDialog
+        scope={scope}
+        campaignId={campaignId}
+        message={eventsFor}
+        onClose={() => setEventsFor(null)}
+      />
       <DataTable
         ariaLabel="수신자별 결과"
         columns={columns}
