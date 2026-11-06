@@ -440,6 +440,9 @@ isOneToOne: false
 "create_trial_org_before_consent":
 { Args: { "p_user_id": string }; Returns: string
                            },
+"create_trial_org_before_events":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
 "create_trial_org_before_review":
 { Args: { "p_user_id": string }; Returns: string
                            },
@@ -471,6 +474,9 @@ isOneToOne: false
                            },
 "seed_public_sample":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"seed_sample_message_events":
+{ Args: { "p_org_id": string }; Returns: undefined
                            },
 "start_demo_send":
 { Args: { "p_body": string,"p_branch_id": string,"p_daily_limit": number,"p_org_id": string,"p_phone": string,"p_sender_phone": unknown,"p_unit_price": number,"p_user_id": string }; Returns: string
