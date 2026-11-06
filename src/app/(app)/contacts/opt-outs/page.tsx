@@ -1,37 +1,28 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import {
-  listOptOuts,
-  optOutFiltersSchema,
-} from "@/features/contacts/contact-query";
-import { OptOutsScreen } from "@/features/contacts/opt-outs-screen";
-import { requireRole } from "@/server/auth/requireRole";
-import { createSupabaseServerClient } from "@/server/supabase/server";
 
-export const metadata: Metadata = { title: "수신거부 · dahda" };
-
-async function OptOuts({ searchParams }: PageProps<"/contacts/opt-outs">) {
-  const member = await requireRole(["hq", "branch"]);
-  const filters = optOutFiltersSchema.parse(await searchParams);
-  const supabase = await createSupabaseServerClient();
-  const { rows, total } = await listOptOuts(supabase, filters);
-
-  return (
-    <OptOutsScreen
-      rows={rows}
-      total={total}
-      filters={filters}
-      canRemove={member.role === "hq"}
-    />
+/**
+ * 수신거부는 주소록 왼쪽 목록의 한 항목이 되었다. 예전 주소(/contacts/opt-outs)로 들어와도 같은 화면을 보여 준다.
+ * 북마크·공유한 링크가 404가 되지 않게 남긴다.
+ * 요청 값(searchParams)을 읽으므로 Suspense 안에서 한다(Cache Components는 경계 밖 요청 값 접근을 빌드에서 막는다).
+ */
+async function Redirect({
+  searchParams,
+}: Pick<PageProps<"/contacts/opt-outs">, "searchParams">) {
+  const params = await searchParams;
+  const q = typeof params.q === "string" ? params.q : "";
+  redirect(
+    `/contacts?${new URLSearchParams({ group: "opt-outs", ...(q ? { q } : {}) })}`,
   );
+  return null;
 }
 
-export default function OptOutsPage(props: PageProps<"/contacts/opt-outs">) {
+export default function OptOutsRedirect(
+  props: PageProps<"/contacts/opt-outs">,
+) {
   return (
-    <Suspense
-      fallback={<div aria-hidden className="h-64 rounded-lg bg-skeleton" />}
-    >
-      <OptOuts {...props} />
+    <Suspense fallback={null}>
+      <Redirect searchParams={props.searchParams} />
     </Suspense>
   );
 }

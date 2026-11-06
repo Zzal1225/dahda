@@ -1,443 +1,418 @@
 "use client";
 
-import { createColumnHelper } from "@tanstack/react-table";
-import { ContactRound } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  DataTable,
-  dataTableFeatures,
-  type DataTableColumn,
-} from "@/components/ui/data-table";
+import { ContactRound, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatPhone } from "@/lib/format";
-import { deleteContact, deleteGroup } from "./actions";
-import { ContactDialog, GroupDialog } from "./contact-dialogs";
+import { SelectMenu } from "@/components/ui/select-menu";
+import { cn } from "@/lib/utils";
+import { ContactDialog, OptOutDialog } from "./contact-dialogs";
+import { ContactDrawer } from "./contact-drawer";
 import {
   CONTACT_PAGE_SIZE,
+  OPT_OUT_PAGE_SIZE,
+  OPT_OUT_VIEW,
   type ContactFilters,
   type ContactRow,
   type GroupRow,
+  type OptOutRow,
 } from "./contact-query";
+import { ContactTable } from "./contact-table";
+import { GroupList } from "./group-list";
+import { OptOutTable } from "./opt-outs-screen";
+import {
+  isReceiveStatus,
+  RECEIVE_STATUSES,
+  RECEIVE_STATUS_VIEW,
+} from "./receive-status";
+import { SelectionBar } from "./selection-bar";
+import { UploadDialog } from "./upload/upload-dialog";
+import { useContactFilters } from "./use-contact-filters";
 
-const column = createColumnHelper<typeof dataTableFeatures, ContactRow>();
 const SEARCH_DEBOUNCE_MS = 300;
+const ALL = "all";
 
-function buildColumns(
-  canEdit: boolean,
-  showBranch: boolean,
-  groups: readonly GroupRow[],
-): DataTableColumn<ContactRow>[] {
-  const nameOf = new Map(groups.map((group) => [group.id, group.name]));
-  const columns: DataTableColumn<ContactRow>[] = [
-    column.display({
-      id: "phone",
-      header: "전화번호",
-      meta: { width: "148px" },
-      cell: ({ row }) => (
-        <span className="text-mono">{formatPhone(row.original.phone)}</span>
-      ),
-    }),
-    column.display({
-      id: "name",
-      header: "이름",
-      meta: { width: "112px" },
-      cell: ({ row }) => (
-        <span className="truncate">{row.original.name ?? "—"}</span>
-      ),
-    }),
-    column.display({
-      id: "groups",
-      header: "그룹",
-      meta: { width: "minmax(80px, 1fr)" },
-      cell: ({ row }) => (
-        <span className="truncate">
-          {row.original.groupIds
-            .map((id) => nameOf.get(id))
-            .filter(Boolean)
-            .join(", ") || "—"}
-        </span>
-      ),
-    }),
-    column.display({
-      id: "memo",
-      header: "메모",
-      meta: { width: "minmax(80px, 1fr)" },
-      cell: ({ row }) => (
-        <span className="truncate text-text-muted">{row.original.memo}</span>
-      ),
-    }),
-    column.display({
-      id: "optOut",
-      header: "수신",
-      meta: { width: "84px" },
-      cell: ({ row }) =>
-        row.original.optedOut ? (
-          <span className="rounded-sm border border-danger px-1 text-caption font-bold text-danger">
-            수신거부
-          </span>
-        ) : row.original.consentAt ? (
-          <span className="text-caption text-text-muted">동의</span>
-        ) : (
-          <span className="text-caption font-bold text-status-pending">
-            미동의
-          </span>
-        ),
-    }),
-  ];
+type Page<T> = { rows: T[]; total: number };
 
-  if (showBranch) {
-    columns.unshift(
-      column.display({
-        id: "branch",
-        header: "지점",
-        meta: { width: "84px" },
-        cell: ({ row }) => row.original.branchName,
-      }),
-    );
-  }
-
-  if (canEdit) {
-    columns.push(
-      column.display({
-        id: "actions",
-        header: () => <span className="sr-only">작업</span>,
-        meta: { width: "148px", align: "right" },
-        cell: ({ row }) => (
-          <>
-            <ContactDialog
-              contact={row.original}
-              groups={groups}
-              trigger={(open) => (
-                <Button variant="ghost" onClick={open}>
-                  수정
-                </Button>
-              )}
-            />
-            <ConfirmDialog
-              title="연락처를 삭제할까요?"
-              description={`${formatPhone(row.original.phone)} 번호를 주소록에서 지워요. 지난 발송 기록은 그대로 남아요.`}
-              confirmLabel="삭제"
-              onConfirm={() => deleteContact(row.original.id)}
-              trigger={(open) => (
-                <Button variant="ghost" onClick={open}>
-                  삭제
-                </Button>
-              )}
-            />
-          </>
-        ),
-      }),
-    );
-  }
-  return columns;
+function Pager({
+  page,
+  total,
+  pageSize,
+  unit,
+  onPage,
+}: {
+  page: number;
+  total: number;
+  pageSize: number;
+  unit: string;
+  onPage: (page: number) => void;
+}) {
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+  return (
+    <div className="flex items-center justify-end gap-3 border-t border-border p-3">
+      <span className="text-body-sm text-text-muted tabular-nums">
+        {start.toLocaleString("ko-KR")}–{end.toLocaleString("ko-KR")} /{" "}
+        {total.toLocaleString("ko-KR")}
+        {unit}
+      </span>
+      <Button
+        variant="secondary"
+        disabled={page <= 1}
+        onClick={() => onPage(page - 1)}
+      >
+        이전
+      </Button>
+      <Button
+        variant="secondary"
+        disabled={page >= lastPage}
+        onClick={() => onPage(page + 1)}
+      >
+        다음
+      </Button>
+    </div>
+  );
 }
 
+/**
+ * 주소록. 왼쪽 220px 그룹 목록 + 오른쪽 표. 데이터는 서버 컴포넌트가 URL(nuqs)대로 읽어 넘긴다.
+ * 툴바를 카드 상자에 넣지 않고 표 바로 위 한 줄로 둔다. 상자가 둘이면 필터가 표와 따로 노는 것처럼 보인다.
+ */
 export function ContactsScreen({
-  rows,
-  total,
+  scope,
   filters,
+  contacts,
+  optOuts,
   groups,
   branches,
+  counts,
+  isHq,
   canEdit,
   canExport,
+  canRemoveOptOut,
+  uploadBranches,
 }: {
-  rows: ContactRow[];
-  total: number;
+  scope: string;
   filters: ContactFilters;
+  contacts: Page<ContactRow> | null;
+  optOuts: Page<OptOutRow> | null;
   groups: readonly GroupRow[];
   branches: readonly { id: string; name: string }[];
+  counts: { all: number; optOuts: number };
+  isHq: boolean;
   canEdit: boolean;
   canExport: boolean;
+  canRemoveOptOut: boolean;
+  /** 업로드할 수 있는 지점. 지점 담당자는 자기 지점 하나, 본사는 전 지점이다. */
+  uploadBranches: readonly { id: string; name: string }[];
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [pending, startTransition] = useTransition();
+  const { pending, setFilters, setPage } = useContactFilters();
   const [search, setSearch] = useState(filters.q);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [openSnapshot, setOpenSnapshot] = useState<ContactRow | null>(null);
 
-  const showBranch = branches.length > 0;
-  // 본사는 그룹이 지점마다 있어 지점을 고른 뒤에만 그룹으로 거른다.
+  const optOutView = filters.group === OPT_OUT_VIEW;
+  const showBranch = isHq;
+
+  // 본사는 그룹이 지점마다 있다. 지점을 고르면 그 지점 그룹만, 아니면 지점 이름을 붙여 모두 보인다.
   const visibleGroups = useMemo(
     () =>
-      showBranch
+      isHq && filters.branch
         ? groups.filter((group) => group.branchId === filters.branch)
         : groups,
-    [groups, showBranch, filters.branch],
-  );
-  const columns = useMemo(
-    () => buildColumns(canEdit, showBranch, groups),
-    [canEdit, showBranch, groups],
+    [groups, isHq, filters.branch],
   );
 
-  function hrefWith(patch: Record<string, string | null>): string {
-    const next = new URLSearchParams(searchParams);
-    for (const [key, value] of Object.entries(patch)) {
-      if (value) next.set(key, value);
-      else next.delete(key);
-    }
-    const query = next.toString();
-    return query ? `${pathname}?${query}` : pathname;
-  }
-
-  // 필터가 바뀌면 1페이지로 돌아간다. 뒤쪽 페이지에서 결과가 줄면 빈 페이지가 보인다.
-  function applyFilter(patch: Record<string, string | null>) {
-    startTransition(() => {
-      router.replace(hrefWith({ ...patch, page: null }), { scroll: false });
-    });
-  }
-
+  // 검색어는 입력이 멈춘 뒤 주소에 남긴다. 글자마다 서버를 다시 그리면 입력이 끊긴다.
   useEffect(() => {
     if (search === filters.q) return;
     const timer = setTimeout(
-      () => applyFilter({ q: search || null }),
+      () => setFilters({ q: search }),
       SEARCH_DEBOUNCE_MS,
     );
     return () => clearTimeout(timer);
-    // applyFilter는 매 렌더 새로 만들어져 넣으면 타이머가 계속 다시 시작된다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filters.q]);
+  }, [search, filters.q, setFilters]);
 
-  const lastPage = Math.max(1, Math.ceil(total / CONTACT_PAGE_SIZE));
-  const start = total === 0 ? 0 : (filters.page - 1) * CONTACT_PAGE_SIZE + 1;
-  const end = Math.min(filters.page * CONTACT_PAGE_SIZE, total);
-  const filtered = Boolean(filters.q || filters.group || filters.branch);
+  // 조건이 바뀌면 선택을 비운다. 보이지 않는 행이 선택된 채로 문자 작성에 넘어가면 누구에게 보내는지 모른다.
+  const conditionKey = JSON.stringify([
+    filters.q,
+    filters.group,
+    filters.branch,
+    filters.status,
+  ]);
+  // 효과(useEffect)가 아니라 렌더 중에 비교해 비운다. 효과로 하면 한 번은 이전 선택이 그려진 뒤 다시 그린다.
+  const [selectionKey, setSelectionKey] = useState(conditionKey);
+  if (selectionKey !== conditionKey) {
+    setSelectionKey(conditionKey);
+    setSelectedIds(new Set());
+  }
+
+  // 상세는 지금 표의 행을 우선 쓴다. 고친 뒤 서버가 다시 그리면 새 값이 보인다.
+  const openContact =
+    contacts?.rows.find((row) => row.id === openId) ??
+    (openSnapshot?.id === openId ? openSnapshot : null);
+
+  function toggle(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function togglePage(ids: readonly string[]) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const all = ids.every((id) => next.has(id));
+      for (const id of ids) {
+        if (all) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }
+
+  const ownBranchId = canEdit ? (uploadBranches[0]?.id ?? null) : null;
+  const ownGroups = ownBranchId
+    ? groups.filter((group) => group.branchId === ownBranchId)
+    : [];
+  const filtered = Boolean(filters.q || filters.status || filters.group);
+
+  const exportHref = `/api/contacts/export?${new URLSearchParams(
+    Object.entries({
+      q: filters.q,
+      group: filters.group ?? "",
+      branch: filters.branch ?? "",
+      status: filters.status ?? "",
+    }).filter(([, value]) => value),
+  )}`;
 
   return (
-    <>
-      <section
-        aria-label="검색과 그룹"
-        className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-4"
-      >
-        <Input
-          type="search"
-          aria-label="이름 또는 번호 검색"
-          placeholder="이름 또는 번호 검색"
-          className="w-[220px]"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+    <div data-wide className="flex flex-col gap-5">
+      <h1 className="text-title-lg">주소록</h1>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <GroupList
+          groups={visibleGroups}
+          selected={filters.group}
+          counts={counts}
+          showBranchName={isHq && !filters.branch}
+          canEdit={canEdit}
+          onSelect={(group) => {
+            setSearch("");
+            setFilters({ group, q: "", status: null });
+          }}
         />
-        {showBranch && (
-          <select
-            aria-label="지점"
-            value={filters.branch ?? ""}
-            onChange={(event) =>
-              applyFilter({ branch: event.target.value || null, group: null })
-            }
-            className="h-(--control-h) cursor-pointer rounded-md border border-border-strong bg-surface px-2 text-body-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          >
-            <option value="">전체 지점</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </select>
-        )}
-        {visibleGroups.length > 0 && (
-          <select
-            aria-label="그룹"
-            value={filters.group ?? ""}
-            onChange={(event) =>
-              applyFilter({ group: event.target.value || null })
-            }
-            className="h-(--control-h) cursor-pointer rounded-md border border-border-strong bg-surface px-2 text-body-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          >
-            <option value="">전체 그룹</option>
-            {visibleGroups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name} ({group.memberCount})
-              </option>
-            ))}
-          </select>
-        )}
-        {canExport && (
-          // 페이지 번호는 넘기지 않는다. 지금 걸린 조건에 맞는 전체를 받는다.
-          <a
-            href={`/api/contacts/export?${new URLSearchParams(
-              Object.entries({
-                q: filters.q,
-                group: filters.group ?? "",
-                branch: filters.branch ?? "",
-              }).filter(([, value]) => value),
-            )}`}
-            className="ml-auto inline-flex h-(--control-h) items-center rounded-md border border-border-strong bg-surface px-4 text-body-sm font-bold outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus"
-          >
-            엑셀 내보내기
-          </a>
-        )}
-        {canEdit && (
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Link
-              href="/contacts/upload"
-              className="inline-flex h-(--control-h) items-center rounded-md border border-border-strong bg-surface px-4 text-body-sm font-bold outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus"
-            >
-              엑셀 업로드
-            </Link>
-            <GroupDialog
-              trigger={(open) => (
-                <Button variant="secondary" onClick={open}>
-                  그룹 만들기
-                </Button>
-              )}
-            />
-            <ContactDialog
-              groups={groups}
-              trigger={(open) => <Button onClick={open}>연락처 추가</Button>}
-            />
-          </div>
-        )}
-      </section>
 
-      {canEdit && groups.length > 0 && (
         <section
-          aria-label="그룹 관리"
-          className="flex flex-wrap items-center gap-2 text-body-sm"
+          aria-label={optOutView ? "수신거부 목록" : "연락처 목록"}
+          aria-busy={pending}
+          className="flex min-w-0 flex-col gap-3"
         >
-          <span className="text-caption font-bold text-text-muted">그룹</span>
-          {groups.map((group) => (
-            <span
-              key={group.id}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface pl-3"
-            >
-              {group.name}
-              <span className="text-caption text-text-muted">
-                {group.memberCount}
-              </span>
-              <GroupDialog
-                group={group}
-                trigger={(open) => (
-                  <Button
-                    variant="ghost"
-                    onClick={open}
-                    aria-label={`${group.name} 이름 바꾸기`}
-                    className="h-7 px-2 text-caption"
-                  >
-                    수정
-                  </Button>
-                )}
+          <div
+            role="toolbar"
+            aria-label={optOutView ? "수신거부 검색" : "연락처 검색과 동작"}
+            className="flex flex-wrap items-center gap-2"
+          >
+            <div className="relative w-[240px]">
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-muted"
+                strokeWidth={2}
               />
-              <ConfirmDialog
-                title={`"${group.name}" 그룹을 삭제할까요?`}
-                description="그룹만 지워져요. 연락처는 주소록에 그대로 남아요."
-                confirmLabel="삭제"
-                onConfirm={() => deleteGroup(group.id)}
-                trigger={(open) => (
-                  <Button
-                    variant="ghost"
-                    onClick={open}
-                    aria-label={`${group.name} 삭제`}
-                    className="h-7 px-2 text-caption"
-                  >
-                    삭제
-                  </Button>
-                )}
-              />
-            </span>
-          ))}
-        </section>
-      )}
-
-      <section
-        aria-label="연락처"
-        aria-busy={pending}
-        className="overflow-hidden rounded-lg border border-border bg-surface"
-      >
-        {rows.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 p-12 text-center">
-            <ContactRound
-              aria-hidden
-              className="size-6 text-text-muted"
-              strokeWidth={1.75}
-            />
-            <p className="text-body-sm text-text-muted">
-              {filtered
-                ? "조건에 맞는 연락처가 없어요"
-                : canEdit
-                  ? "아직 연락처가 없어요"
-                  : "아직 등록된 연락처가 없어요"}
-            </p>
-            {filtered ? (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setSearch("");
-                  applyFilter({ q: null, group: null, branch: null });
-                }}
-              >
-                조건 지우기
-              </Button>
-            ) : (
-              canEdit && (
-                <ContactDialog
-                  groups={groups}
-                  trigger={(open) => (
-                    <Button variant="secondary" onClick={open}>
-                      첫 연락처 추가하기
-                    </Button>
-                  )}
-                />
-              )
-            )}
-          </div>
-        ) : (
-          <>
-            <DataTable
-              ariaLabel="연락처"
-              columns={columns}
-              rows={rows}
-              getRowId={(row) => row.id}
-              rowHeight={44}
-            />
-            <div className="flex items-center justify-end gap-3 border-t border-border p-3">
-              <span className="text-body-sm text-text-muted">
-                {start.toLocaleString("ko-KR")}–{end.toLocaleString("ko-KR")} /{" "}
-                {total.toLocaleString("ko-KR")}명
-              </span>
-              <PageLink
-                href={hrefWith({ page: String(filters.page - 1) })}
-                disabled={filters.page <= 1}
-                label="이전"
-              />
-              <PageLink
-                href={hrefWith({ page: String(filters.page + 1) })}
-                disabled={filters.page >= lastPage}
-                label="다음"
+              <Input
+                type="search"
+                aria-label={optOutView ? "번호 검색" : "이름 또는 번호 검색"}
+                placeholder={
+                  optOutView ? "번호 뒤 4자리" : "이름 또는 번호 뒤 4자리"
+                }
+                className="pl-9"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
               />
             </div>
-          </>
-        )}
-      </section>
-    </>
-  );
-}
+            {!optOutView && isHq && (
+              <SelectMenu
+                label="지점"
+                className="w-[132px]"
+                value={filters.branch ?? ALL}
+                options={[
+                  { value: ALL, label: "전체 지점" },
+                  ...branches.map((branch) => ({
+                    value: branch.id,
+                    label: branch.name,
+                  })),
+                ]}
+                onChange={(value) =>
+                  // 다른 지점의 그룹을 고른 채로 지점을 바꾸면 결과가 0이 된다. 그룹 선택을 함께 지운다.
+                  setFilters({
+                    branch: value === ALL ? null : value,
+                    group: null,
+                  })
+                }
+              />
+            )}
+            {!optOutView && (
+              <SelectMenu
+                label="수신 상태"
+                className="w-[132px]"
+                value={filters.status ?? ALL}
+                options={[
+                  { value: ALL, label: "모든 수신 상태" },
+                  ...RECEIVE_STATUSES.map((status) => ({
+                    value: status,
+                    label: RECEIVE_STATUS_VIEW[status].label,
+                  })),
+                ]}
+                onChange={(value) =>
+                  setFilters({
+                    status: isReceiveStatus(value) ? value : null,
+                  })
+                }
+              />
+            )}
 
-export function PageLink({
-  href,
-  disabled,
-  label,
-}: {
-  href: string;
-  disabled: boolean;
-  label: string;
-}) {
-  if (disabled) {
-    return (
-      <Button variant="secondary" disabled>
-        {label}
-      </Button>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      className="inline-flex h-(--control-h) items-center rounded-md border border-border-strong bg-surface px-4 text-body-sm font-bold outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus"
-    >
-      {label}
-    </Link>
+            <div className="ml-auto flex items-center gap-2">
+              {optOutView ? (
+                <OptOutDialog
+                  trigger={(open) => (
+                    <Button onClick={open}>수신거부 등록</Button>
+                  )}
+                />
+              ) : (
+                <>
+                  {canEdit && (
+                    <ContactDialog
+                      groups={ownGroups}
+                      trigger={(open) => (
+                        <Button variant="secondary" onClick={open}>
+                          연락처 추가
+                        </Button>
+                      )}
+                    />
+                  )}
+                  {canExport && (
+                    // 파일을 내려받는 이동이라 링크다. 페이지 번호는 넘기지 않고 조건에 맞는 전체를 받는다.
+                    <a
+                      href={exportHref}
+                      className={buttonVariants({ variant: "secondary" })}
+                    >
+                      내보내기
+                    </a>
+                  )}
+                  {uploadBranches.length > 0 && (
+                    <UploadDialog
+                      branches={uploadBranches}
+                      defaultBranchId={filters.branch}
+                      trigger={(open) => (
+                        <Button onClick={open}>엑셀 업로드</Button>
+                      )}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {!optOutView && selectedIds.size > 0 && (
+            <SelectionBar
+              selectedIds={selectedIds}
+              groups={ownGroups}
+              canAddToGroup={canEdit}
+              onClear={() => setSelectedIds(new Set())}
+            />
+          )}
+
+          <div
+            className={cn(
+              "overflow-hidden rounded-lg border border-border bg-surface",
+              pending && "opacity-60",
+            )}
+          >
+            {optOutView && optOuts && (
+              <>
+                <OptOutTable
+                  rows={optOuts.rows}
+                  canRemove={canRemoveOptOut}
+                  filtered={Boolean(filters.q)}
+                />
+                {optOuts.rows.length > 0 && (
+                  <Pager
+                    page={filters.page}
+                    total={optOuts.total}
+                    pageSize={OPT_OUT_PAGE_SIZE}
+                    unit="건"
+                    onPage={setPage}
+                  />
+                )}
+              </>
+            )}
+
+            {!optOutView && contacts && contacts.rows.length === 0 && (
+              <div className="flex flex-col items-center gap-3 p-12 text-center">
+                <ContactRound
+                  aria-hidden
+                  className="size-6 text-text-muted"
+                  strokeWidth={1.75}
+                />
+                <p className="text-body-sm text-text-muted">
+                  {filtered || filters.page > 1
+                    ? "조건에 맞는 연락처가 없어요"
+                    : "아직 연락처가 없어요. 엑셀 파일로 한 번에 올릴 수 있어요"}
+                </p>
+                {(filtered || filters.page > 1) && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setSearch("");
+                      setFilters({ q: "", status: null, group: null });
+                    }}
+                  >
+                    조건 지우기
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {!optOutView && contacts && contacts.rows.length > 0 && (
+              <>
+                <ContactTable
+                  rows={contacts.rows}
+                  groups={groups}
+                  showBranch={showBranch}
+                  selectedIds={selectedIds}
+                  onToggle={toggle}
+                  onTogglePage={togglePage}
+                  onOpen={(contact) => {
+                    setOpenSnapshot(contact);
+                    setOpenId(contact.id);
+                  }}
+                />
+                <Pager
+                  page={filters.page}
+                  total={contacts.total}
+                  pageSize={CONTACT_PAGE_SIZE}
+                  unit="명"
+                  onPage={setPage}
+                />
+              </>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <ContactDrawer
+        scope={scope}
+        contact={openContact}
+        groups={groups}
+        canEdit={canEdit}
+        showBranch={showBranch}
+        onClose={() => setOpenId(null)}
+      />
+    </div>
   );
 }

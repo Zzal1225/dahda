@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { z } from "zod";
 import { adSuffix } from "@/features/campaigns/campaignSchema";
 import { optOutPhone, senderNameOf } from "@/features/campaigns/compose-config";
 import { ComposeScreen } from "@/features/campaigns/compose-screen";
@@ -9,7 +10,22 @@ import { createSupabaseServerClient } from "@/server/supabase/server";
 
 export const metadata: Metadata = { title: "문자 작성 · dahda" };
 
-async function Compose() {
+const MAX_PREFILLED_CONTACTS = 200;
+const uuid = z.uuid();
+
+/**
+ * 주소록에서 고른 연락처(?contacts=id,id). uuid가 아닌 값은 버린다. 주소는 사용자가 고칠 수 있는 입력이다.
+ * 볼 수 없는 id(다른 지점 등)는 받는 사람 계산에서 RLS가 빈 결과로 만든다.
+ */
+function contactIdsFrom(value: string | string[] | undefined): string[] {
+  const raw = Array.isArray(value) ? value.join(",") : (value ?? "");
+  return [
+    ...new Set(raw.split(",").filter((id) => uuid.safeParse(id).success)),
+  ].slice(0, MAX_PREFILLED_CONTACTS);
+}
+
+async function Compose({ searchParams }: PageProps<"/compose">) {
+  const initialContactIds = contactIdsFrom((await searchParams).contacts);
   const member = await requireRole(["hq", "branch"]);
   const supabase = await createSupabaseServerClient();
 
@@ -67,17 +83,18 @@ async function Compose() {
         senderName={senderNameOf(member)}
         optOutSuffix={adSuffix(optOutPhone())}
         isBranch={member.role === "branch"}
+        initialContactIds={initialContactIds}
       />
     </>
   );
 }
 
-export default function ComposePage() {
+export default function ComposePage(props: PageProps<"/compose">) {
   return (
     <Suspense
       fallback={<div aria-hidden className="h-96 rounded-lg bg-skeleton" />}
     >
-      <Compose />
+      <Compose {...props} />
     </Suspense>
   );
 }

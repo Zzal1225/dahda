@@ -28,15 +28,21 @@ async function runWorker(failureRate: number) {
   const deliveries: Promise<unknown>[] = [];
   const scheduled: Promise<unknown>[] = [];
   const errors: unknown[] = [];
+  // 웹훅을 하나씩 보낸다. 체험 그룹이 100명대라 한꺼번에 보내면 로컬(Windows)에서 앱 → Supabase 연결이
+  // 모자라 "fetch failed"로 500이 났다. 이 테스트가 보려는 것은 결과 반영이지 동시 처리량이 아니다(측정 4가 맡음).
+  let previous: Promise<unknown> = Promise.resolve();
   const fake = createFakeProvider({
     secret: env.FAKE_WEBHOOK_SECRET ?? "",
     failureRate,
     deliver: async (webhook) => {
-      const delivery = fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: webhook.headers,
-        body: webhook.rawBody,
-      });
+      const delivery = previous.then(() =>
+        fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: webhook.headers,
+          body: webhook.rawBody,
+        }),
+      );
+      previous = delivery.catch(() => undefined);
       deliveries.push(delivery);
       const response = await delivery;
       expect(response.status).toBe(200);
@@ -70,7 +76,7 @@ async function sendNow(page: Page, branch: string, text: string) {
   await page.getByRole("menuitemradio", { name: `지점 · ${branch}` }).click();
   await expect(page.getByRole("banner")).toContainText(branch);
   await page.goto("/compose");
-  await page.getByRole("checkbox", { name: /신규 손님/ }).check();
+  await page.getByRole("checkbox", { name: /신규/ }).check();
   await page.getByRole("textbox", { name: "보낼 내용" }).fill(text);
   await expect(
     page.getByRole("status").filter({ hasText: "총" }),

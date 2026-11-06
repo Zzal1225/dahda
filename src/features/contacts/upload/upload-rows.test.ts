@@ -12,13 +12,22 @@ import {
 
 describe("detectColumns", () => {
   it.each([
-    [["전화번호", "이름", "메모"], { phone: 0, name: 1, memo: 2, consent: -1 }],
-    [["이름", "휴대폰"], { phone: 1, name: 0, memo: -1, consent: -1 }],
+    [
+      ["전화번호", "이름", "메모"],
+      { phone: 0, name: 1, memo: 2, consent: -1, group: -1 },
+    ],
+    [
+      ["이름", "휴대폰"],
+      { phone: 1, name: 0, memo: -1, consent: -1, group: -1 },
+    ],
     [
       [" 전화 번호 ", "성명", "비고"],
-      { phone: 0, name: 1, memo: 2, consent: -1 },
+      { phone: 0, name: 1, memo: 2, consent: -1, group: -1 },
     ],
-    [["Name", "PHONE"], { phone: 1, name: 0, memo: -1, consent: -1 }],
+    [
+      ["Name", "PHONE"],
+      { phone: 1, name: 0, memo: -1, consent: -1, group: -1 },
+    ],
   ])("%j", (header, expected) => {
     expect(detectColumns(header)).toEqual(expected);
   });

@@ -73,6 +73,7 @@ export function ComposeScreen({
   senderName,
   optOutSuffix,
   isBranch,
+  initialContactIds = [],
 }: {
   groups: readonly GroupOption[];
   senders: readonly SenderOption[];
@@ -80,6 +81,8 @@ export function ComposeScreen({
   senderName: string;
   optOutSuffix: string;
   isBranch: boolean;
+  /** 주소록에서 고른 사람(?contacts=). 받는 사람에 미리 넣는다. */
+  initialContactIds?: readonly string[];
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -87,7 +90,7 @@ export function ComposeScreen({
   const [submitError, setSubmitError] = useState<string>();
   const [confirming, setConfirming] = useState(false);
   const [recipientTab, setRecipientTab] = useState<"group" | "contact">(
-    "group",
+    initialContactIds.length > 0 ? "contact" : "group",
   );
   const [summary, setSummary] = useState<RecipientSummary | null>(null);
   const [contactQuery, setContactQuery] = useState("");
@@ -132,7 +135,7 @@ export function ComposeScreen({
     defaultValues: {
       clientRequestId,
       groupIds: [],
-      contactIds: [],
+      contactIds: [...initialContactIds],
       isAd: false,
       body: "",
       senderId: defaultSender?.id ?? "",
@@ -304,6 +307,29 @@ export function ComposeScreen({
 
             {recipientTab === "contact" && (
               <div className="flex flex-col gap-2">
+                {/* 주소록에서 고른 사람은 검색 목록에 안 보일 수 있다. 몇 명이 들어 있는지와 비우는 방법을 보인다. */}
+                {contactIds.length > 0 && (
+                  <div className="flex items-center justify-between gap-3 rounded-md bg-primary-subtle px-3 py-2 text-body-sm">
+                    <span>
+                      고른 연락처{" "}
+                      <b className="tabular-nums">
+                        {contactIds.length.toLocaleString("ko-KR")}명
+                      </b>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      className="h-8"
+                      onClick={() =>
+                        setValue("contactIds", [], {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      모두 빼기
+                    </Button>
+                  </div>
+                )}
                 <Input
                   type="search"
                   aria-label="받는 사람 검색"

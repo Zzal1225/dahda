@@ -313,7 +313,8 @@ describe("주소록 쓰기", () => {
     expect(result.code).toBe(DENIED);
   });
 
-  it("본사는 주소록을 조회만 한다", async () => {
+  // 본사는 엑셀 업로드로 지점 주소록에 넣을 수 있다(20261106000500). 고치기·지우기는 여전히 지점만 한다.
+  it("본사는 지점 주소록에 추가만 하고 고치거나 지울 수 없다", async () => {
     const token = await f.tokenOf("hq");
     const own = f.contacts.find((c) => c.branch_id === f.branch1);
 
@@ -328,9 +329,22 @@ describe("주소록 쓰기", () => {
     });
     const deleted = await rest(token, "DELETE", `contacts?id=eq.${own?.id}`);
 
-    expect(inserted.code).toBe(DENIED);
+    expect(inserted.code).toBeUndefined();
     expect(updated.rows).toEqual([]);
     expect(deleted.rows).toEqual([]);
+
+    await service.from("contacts").delete().eq("phone", "01000001003");
+  });
+
+  it("본사도 다른 본사의 지점에는 추가할 수 없다", async () => {
+    const token = await f.tokenOf("hq");
+    const result = await rest(
+      token,
+      "POST",
+      "contacts",
+      newContact(f.orgB, f.branchB, "01000001004"),
+    );
+    expect(result.code).toBe(DENIED);
   });
 
   it("옆 지점 연락처를 내 그룹에 넣을 수 없다", async () => {
