@@ -91,6 +91,20 @@ export function progressText(
   return `도착 ${percent}%${failed}`;
 }
 
+/**
+ * 끝났고 한 건도 빠짐없이 도착했다. 진행 막대 대신 "도착 확인" 도장을 찍는다(첫 화면·발송 상세).
+ * 두 화면이 같은 기준을 써야 한쪽에서만 도장이 찍히는 일이 없어 여기에 둔다.
+ */
+export function isFullyDelivered(
+  campaign: Pick<CampaignRow, "status" | "recipientCount" | "deliveredCount">,
+): boolean {
+  return (
+    campaign.status === "completed" &&
+    campaign.recipientCount > 0 &&
+    campaign.deliveredCount === campaign.recipientCount
+  );
+}
+
 export type CampaignCost = { estimated: boolean; amount: number };
 
 const NOT_SENT_YET: readonly CampaignStatus[] = [
