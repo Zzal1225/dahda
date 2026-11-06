@@ -42,10 +42,12 @@ export function DemoSmsForm() {
             aria-describedby={consentError ? "demo-consent-error" : undefined}
             {...form.register("consent")}
           />
-          <span>
-            본인 번호이며, 이 문자 1건을 받는 데 동의해요. 번호는 체험 계정과
-            함께 3일 뒤 지워져요. 중복 발송을 막는 값은 30일, 문자 업체의 결과
-            기록은 최대 90일간 보관해요.
+          <span className="flex flex-col gap-1">
+            <span>이 문자 1건을 받는 데 동의합니다.</span>
+            <span className="text-caption text-text-muted">
+              번호는 체험 계정과 함께 3일 뒤 삭제, 중복 발송을 막는 값은 30일,
+              문자 업체의 결과 기록은 최대 90일간 보관
+            </span>
           </span>
         </label>
         {consentError && (

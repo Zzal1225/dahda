@@ -9,7 +9,7 @@ import {
   messageCounts,
   type CampaignRow,
 } from "@/features/campaigns/campaign-view";
-import { formatWon, isLowBalance } from "@/lib/format";
+import { formatWon } from "@/lib/format";
 import { formatKstDateTime } from "@/lib/kst";
 import { cn } from "@/lib/utils";
 import type { CurrentMember } from "@/server/auth/current-member";
@@ -154,14 +154,7 @@ export function HomeScreen({
           <span className="text-body-sm font-bold text-text-muted">
             {isHq ? "본사 잔액" : "잔액"}
           </span>
-          <span
-            className={cn(
-              "text-number-lg",
-              isLowBalance(ownBalance) && "text-status-pending",
-            )}
-          >
-            {formatWon(ownBalance)}
-          </span>
+          <span className="text-number-lg">{formatWon(ownBalance)}</span>
           <Link href="/billing" className="text-caption underline">
             충전하기
           </Link>
@@ -264,14 +257,7 @@ export function HomeScreen({
                       className="flex h-11 items-center justify-between gap-2 text-body-sm"
                     >
                       <span>{branch.name}</span>
-                      <span className="flex items-center gap-2">
-                        {isLowBalance(balance) && (
-                          <span className="text-caption font-bold text-status-pending">
-                            잔액 적음
-                          </span>
-                        )}
-                        <span className="font-bold">{formatWon(balance)}</span>
-                      </span>
+                      <span className="font-bold">{formatWon(balance)}</span>
                     </li>
                   );
                 })}

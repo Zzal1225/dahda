@@ -31,9 +31,6 @@ async function DemoSms() {
         <p className="text-body-sm">{DEMO_SMS_BODY}</p>
       </section>
       <DemoSmsForm />
-      <p className="text-caption text-text-muted">
-        체험 계정마다 1건, 번호마다 1건, 전체 하루 10건까지 보낼 수 있어요.
-      </p>
     </div>
   );
 }

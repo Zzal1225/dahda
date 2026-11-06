@@ -32,7 +32,7 @@ test.describe("체험 계정", () => {
       "₩2,000,000",
     );
     await expect(table.getByRole("row", { name: /합정점/ })).toContainText(
-      "잔액 적음",
+      "₩864,200",
     );
 
     // 체험 계정에서는 실제 계정을 만드는 버튼이 없다.

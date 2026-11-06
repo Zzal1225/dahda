@@ -104,7 +104,7 @@ async function Billing({ searchParams }: PageProps<"/billing">) {
           aria-label="지점 잔액"
           className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4"
         >
-          <h2 className="text-body font-bold">지점 잔액 (조회만 가능해요)</h2>
+          <h2 className="text-body font-bold">지점 별 잔액 현황</h2>
           <ul className="flex flex-wrap gap-2">
             <li>
               <Link

@@ -67,8 +67,8 @@ export function ChargePanel() {
         </p>
       )}
       <p className="text-caption text-text-muted">
-        테스트 결제이며 실제 출금은 없어요. 카드로 결제해 주세요. 간편결제
-        앱에는 출금 안내가 보일 수 있어요. 충전은 내 계정 잔액에만 들어가요.
+        테스트 결제이며 실제 결제는 이뤄지지 않아요. 충전금은 내 계정 잔액에만
+        들어가요.
       </p>
     </section>
   );
