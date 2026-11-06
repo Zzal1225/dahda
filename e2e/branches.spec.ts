@@ -27,7 +27,8 @@ test.describe("체험 계정", () => {
       .getByRole("link", { name: "지점 관리" })
       .click();
 
-    const table = page.getByRole("table");
+    // 이동 중에는 첫 화면의 최근 발송 표에도 성수점 행이 있다. 지점 표만 고른다.
+    const table = page.getByRole("table", { name: "지점", exact: true });
     await expect(table.getByRole("row", { name: /성수점/ })).toContainText(
       "₩2,000,000",
     );
