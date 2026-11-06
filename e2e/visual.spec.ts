@@ -29,6 +29,8 @@ const SCREENS: {
     path: "/",
     ready: (page) => page.getByRole("table", { name: "최근 발송" }),
     mask: (page) => [
+      // 제목에 오늘 날짜가 들어가 매일 달라진다.
+      page.getByRole("heading", { level: 1 }),
       page.getByRole("region", { name: "진행 중인 발송" }).getByRole("list"),
       bodyRows(page),
     ],
@@ -59,7 +61,9 @@ test.describe("화면 비교", () => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/login");
       await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
-      await expect(page.getByRole("heading", { name: "홈" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 1, name: /관리자|담당자/ }),
+      ).toBeVisible();
 
       for (const screen of SCREENS) {
         await page.goto(screen.path);

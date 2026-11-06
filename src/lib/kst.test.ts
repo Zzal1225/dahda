@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatKstDateTime,
+  formatKstMonthDayWeekday,
   formatKstTime,
   kstDayOptions,
   kstDayTimeToUtc,
@@ -21,6 +22,18 @@ describe("KST 표시", () => {
 
   it("자정을 24시가 아니라 00시로 표시한다", () => {
     expect(formatKstTime("2026-11-04T15:00:00Z")).toBe("00:00:00");
+  });
+});
+
+describe("formatKstMonthDayWeekday", () => {
+  it("KST 날짜와 요일을 쓴다", () => {
+    // UTC 11-06 16:00 = KST 11-07 01:00 (토)
+    expect(formatKstMonthDayWeekday("2026-11-06T16:00:00Z")).toBe(
+      "11월 7일(토)",
+    );
+    expect(formatKstMonthDayWeekday("2026-11-06T04:00:00Z")).toBe(
+      "11월 6일(금)",
+    );
   });
 });
 

@@ -71,8 +71,10 @@ test.describe("공용 10만 행 샘플", () => {
     await page.goto("/");
     await expect(
       page.getByRole("region", { name: "오늘 발송", exact: true }),
-    ).toContainText("480");
-    await expect(page.getByRole("banner")).toContainText("₩8,500,000");
+    ).toContainText("1,356");
+    await expect(
+      page.getByRole("region", { name: "잔액", exact: true }),
+    ).toContainText("₩8,500,000");
     await page.goto("/history");
     await expect(page.getByText("10만 행을 확인하는")).toHaveCount(0);
   });

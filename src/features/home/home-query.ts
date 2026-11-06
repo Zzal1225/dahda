@@ -7,7 +7,7 @@ import {
 import type { CampaignRow } from "@/features/campaigns/campaign-view";
 import { periodToRange } from "@/lib/kst";
 import type { Database } from "@/server/db/database.types";
-import type { TodayTotals } from "./home-summary";
+import { sortActive, type TodayTotals } from "./home-summary";
 
 const ACTIVE_LIMIT = 5;
 const PENDING_LIMIT = 3;
@@ -16,7 +16,9 @@ const RECENT_LIMIT = 5;
 export type HomeData = {
   today: TodayTotals | undefined;
   scheduledCount: number;
+  /** 진행 중·예약·오늘 끝난 건. 최대 ACTIVE_LIMIT건. */
   active: CampaignRow[];
+  /** 진행 중·예약 건수. 오늘 끝난 건은 세지 않는다. */
   activeTotal: number;
   pending: CampaignRow[];
   pendingTotal: number;
@@ -37,44 +39,62 @@ export async function loadHome(
   const todayStart = from ?? options.now.toISOString();
   const campaigns = () => supabase.from("campaigns").select(CAMPAIGN_COLUMNS);
 
-  const [today, scheduled, active, pending, recent, balances, branches] =
-    await Promise.all([
-      // 예약은 오늘 나간 건이 아니다. 시작 시각으로 세어야 어제 예약해 오늘 나간 건이 들어온다.
-      supabase.rpc("today_campaign_summary", { p_from: todayStart }),
-      supabase
-        .from("campaigns")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "scheduled"),
-      supabase
-        .from("campaigns")
-        .select(CAMPAIGN_COLUMNS, { count: "exact" })
-        .in("status", ["sending", "scheduled"])
-        .order("status", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(ACTIVE_LIMIT),
-      supabase
-        .from("campaigns")
-        .select(CAMPAIGN_COLUMNS, { count: "exact" })
-        .eq("status", "pending_approval")
-        .order("created_at", { ascending: false })
-        .limit(PENDING_LIMIT),
-      campaigns()
-        .in("status", ["sending", "completed"])
-        .order("created_at", { ascending: false })
-        .limit(RECENT_LIMIT),
-      supabase
-        .from("account_balances")
-        .select("branch_id, balance")
-        .eq("org_id", options.orgId),
-      options.isHq
-        ? supabase.from("branches").select("id, name").order("name")
-        : Promise.resolve({ data: [], error: null }),
-    ]);
+  const [
+    today,
+    scheduled,
+    active,
+    finishedToday,
+    pending,
+    recent,
+    balances,
+    branches,
+  ] = await Promise.all([
+    // 예약은 오늘 나간 건이 아니다. 시작 시각으로 세어야 어제 예약해 오늘 나간 건이 들어온다.
+    supabase.rpc("today_campaign_summary", { p_from: todayStart }),
+    supabase
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "scheduled"),
+    // 순서는 상태 값의 정의 순서가 아니라 화면 규칙(sortActive)으로 코드에서 정한다.
+    supabase
+      .from("campaigns")
+      .select(CAMPAIGN_COLUMNS, { count: "exact" })
+      .in("status", ["sending", "scheduled"])
+      .order("created_at", { ascending: false })
+      .limit(ACTIVE_LIMIT),
+    // 오늘 끝난 건도 남은 자리에 보여 준다. 끝나는 순간 목록에서 사라지면 "다 도착했다"는 결과를 볼 수 없다.
+    // 따로 읽는 이유: 함께 최신순으로 자르면 오늘 끝난 건이 많을 때 진행 중인 건이 밀려난다.
+    supabase
+      .from("campaigns")
+      .select(CAMPAIGN_COLUMNS)
+      .eq("status", "completed")
+      .gte("completed_at", todayStart)
+      .order("completed_at", { ascending: false })
+      .limit(ACTIVE_LIMIT),
+    supabase
+      .from("campaigns")
+      .select(CAMPAIGN_COLUMNS, { count: "exact" })
+      .eq("status", "pending_approval")
+      .order("created_at", { ascending: false })
+      .limit(PENDING_LIMIT),
+    campaigns()
+      .in("status", ["sending", "completed"])
+      .order("created_at", { ascending: false })
+      .limit(RECENT_LIMIT),
+    supabase
+      .from("account_balances")
+      .select("branch_id, balance")
+      .eq("org_id", options.orgId),
+    options.isHq
+      ? supabase.from("branches").select("id, name").order("name")
+      : Promise.resolve({ data: [], error: null }),
+  ]);
 
   const failure =
     today.error ??
     scheduled.error ??
     active.error ??
+    finishedToday.error ??
     pending.error ??
     recent.error ??
     balances.error ??
@@ -84,7 +104,10 @@ export async function loadHome(
   return {
     today: today.data?.[0],
     scheduledCount: scheduled.count ?? 0,
-    active: (active.data ?? []).map(toCampaignRow),
+    active: [
+      ...sortActive((active.data ?? []).map(toCampaignRow)),
+      ...(finishedToday.data ?? []).map(toCampaignRow),
+    ].slice(0, ACTIVE_LIMIT),
     activeTotal: active.count ?? 0,
     pending: (pending.data ?? []).map(toCampaignRow),
     pendingTotal: pending.count ?? 0,

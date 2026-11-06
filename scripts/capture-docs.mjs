@@ -45,7 +45,7 @@ await shot("history-states", page.locator("main"));
 // 2. 수신자 기록: 결과 웹훅이 접수 기록보다 먼저 온 행(샘플 3번)
 await page
   .getByRole("table", { name: "발송 건" })
-  .getByRole("row", { name: /성수점 이번 주 특가/ })
+  .getByRole("row", { name: /성수점 \[주차장 공사/ })
   .click();
 await page
   .getByRole("searchbox", { name: "수신번호 검색" })

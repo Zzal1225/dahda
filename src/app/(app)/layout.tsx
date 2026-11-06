@@ -49,7 +49,8 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
                 <TopBarSection />
               </Suspense>
             </header>
-            <main className="flex w-full max-w-(--content-max) flex-col gap-5 p-4 md:p-8">
+            {/* 넓은 화면에서 본문이 왼쪽에 붙어 오른쪽이 비지 않게 가운데 둔다. 첫 화면만 더 넓게 쓰는 규칙은 globals.css. */}
+            <main className="mx-auto flex w-full max-w-(--content-max) flex-col gap-5 p-4 md:p-8">
               <QueryProvider>{children}</QueryProvider>
             </main>
           </div>

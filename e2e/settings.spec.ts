@@ -4,7 +4,9 @@ import * as XLSX from "xlsx";
 const startTrial = async (page: import("@playwright/test").Page) => {
   await page.goto("/login");
   await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
-  await expect(page.getByRole("heading", { name: "홈" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: /관리자|담당자/ }),
+  ).toBeVisible();
 };
 
 test.describe("설정", () => {

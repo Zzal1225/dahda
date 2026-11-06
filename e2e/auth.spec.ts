@@ -17,24 +17,26 @@ test.describe("체험하기", () => {
       "문자 발송은 가짜 발송기로 처리돼요",
     );
     const header = page.getByRole("banner");
+    // 첫 화면은 상단 바 대신 잔액 칸에 잔액을 보인다(같은 숫자를 두 번 보이지 않는다).
+    const balance = page.getByRole("region", { name: "잔액", exact: true });
     await expect(header).toContainText("전체 지점");
-    await expect(header).toContainText("₩8,500,000");
+    await expect(balance).toContainText("₩8,500,000");
 
     await page.getByRole("button", { name: /역할 전환/ }).click();
     await page.getByRole("menuitemradio", { name: /지점 · 합정점/ }).click();
 
     await expect(header).toContainText("합정점");
-    await expect(header).toContainText("₩864,200");
+    await expect(balance).toContainText("₩864,200");
 
     // 화면 상태만 바뀐 가짜 전환이면 새로고침에서 되돌아간다.
     await page.reload();
     await expect(header).toContainText("합정점");
-    await expect(header).toContainText("₩864,200");
+    await expect(balance).toContainText("₩864,200");
 
     await page.getByRole("button", { name: /역할 전환/ }).click();
     await page.getByRole("menuitemradio", { name: /본사 관리자/ }).click();
     await expect(header).toContainText("전체 지점");
-    await expect(header).toContainText("₩8,500,000");
+    await expect(balance).toContainText("₩8,500,000");
   });
 
   test("로그아웃하면 다시 로그인 화면으로 간다", async ({ page }) => {
@@ -131,8 +133,13 @@ test.describe("이메일 로그인", () => {
     await page.getByRole("button", { name: "로그인", exact: true }).click();
 
     await expect(page).toHaveURL("http://127.0.0.1:3000/");
-    await expect(page.getByRole("heading", { name: "홈" })).toBeVisible();
-    await expect(page.getByRole("banner")).toContainText("₩0");
+    await expect(
+      page.getByRole("heading", { level: 1, name: /관리자|담당자/ }),
+    ).toBeVisible();
+    // 첫 화면은 상단 바 대신 잔액 칸에 잔액을 보인다(같은 숫자를 두 번 보이지 않는다).
+    await expect(
+      page.getByRole("region", { name: "잔액", exact: true }),
+    ).toContainText("₩0");
     await expect(page.getByRole("note")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /역할 전환/ })).toHaveCount(
       0,

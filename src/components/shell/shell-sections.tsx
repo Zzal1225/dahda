@@ -9,6 +9,7 @@ import { formatWon } from "@/lib/format";
 import { getCurrentMember } from "@/server/auth/current-member";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 import { AccountMenu } from "./account-menu";
+import { HideOnHome } from "./hide-on-home";
 import { navItemsFor } from "./nav-items";
 import { RoleSwitcher } from "./role-switcher";
 import { SidebarNav } from "./sidebar-nav";
@@ -82,14 +83,18 @@ export async function TopBarSection() {
         />
         {member.branchName ?? "전체 지점"}
       </span>
-      <div className="ml-auto hidden items-center gap-3 md:flex">
-        <span className="text-caption text-text-muted">
-          {member.role === "hq" ? "본사 잔액" : "잔액"}
-        </span>
-        <span className="text-body font-bold">{formatWon(balance)}</span>
-      </div>
-      <span aria-hidden className="hidden h-6 w-px bg-border md:block" />
-      <span aria-hidden className="ml-auto md:hidden" />
+      <span aria-hidden className="ml-auto" />
+      <HideOnHome>
+        <div className="hidden items-center gap-3 md:flex">
+          <span className="text-caption text-text-muted">
+            {member.role === "hq" ? "본사 잔액" : "잔액"}
+          </span>
+          <span className="text-body font-bold tabular-nums">
+            {formatWon(balance)}
+          </span>
+        </div>
+        <span aria-hidden className="hidden h-6 w-px bg-border md:block" />
+      </HideOnHome>
       {member.isTrial && (
         <RoleSwitcher options={roleOptions} currentBranchId={member.branchId} />
       )}

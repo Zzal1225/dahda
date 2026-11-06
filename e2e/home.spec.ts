@@ -4,7 +4,9 @@ test.describe("첫 화면", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("button", { name: "로그인 없이 체험하기" }).click();
-    await expect(page.getByRole("heading", { name: "홈" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /관리자|담당자/ }),
+    ).toBeVisible();
   });
 
   test("본사는 오늘 숫자, 승인 대기, 지점별 잔액, 최근 발송을 본다", async ({
