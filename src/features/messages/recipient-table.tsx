@@ -585,8 +585,10 @@ export function RecipientTable({
       )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-border p-3">
+        {/* 페이지네이션이 아니다. 전체 행이 한 스크롤이고, 이 값은 서버에서 한 번에 받는 묶음 크기다.
+            "페이지 크기"라고 쓰면 표가 나뉘어 있다고 오해해 가상화가 하는 일이 보이지 않는다. */}
         <Segmented
-          label="페이지 크기"
+          label="한 번에 받는 행"
           value={pageSize}
           options={PAGE_SIZES.map((size) => ({
             value: size,
@@ -594,6 +596,11 @@ export function RecipientTable({
           }))}
           onChange={state.setPageSize}
         />
+        {total > 0 && (
+          <span className="text-caption text-text-muted">
+            그린 행 {items.length}개
+          </span>
+        )}
         <span
           className="ml-auto text-body-sm text-text-muted"
           aria-live="polite"
@@ -607,14 +614,14 @@ export function RecipientTable({
           disabled={page <= 1}
           onClick={() => jumpToPage(page - 1)}
         >
-          이전
+          이전 {pageSize}행
         </Button>
         <Button
           variant="secondary"
           disabled={page >= lastPage}
           onClick={() => jumpToPage(page + 1)}
         >
-          다음
+          다음 {pageSize}행
         </Button>
       </div>
     </>

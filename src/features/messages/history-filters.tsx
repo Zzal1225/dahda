@@ -11,7 +11,13 @@ import type { MessageCounts } from "@/features/campaigns/campaign-view";
 import { cn } from "@/lib/utils";
 import { MESSAGE_STATUSES, type MessageRow } from "./message-query";
 import { MESSAGE_STATUS_VIEW } from "./message-view";
-import type { AdFilter, Period, TableState } from "./table-state";
+import {
+  CAMPAIGN_STATE_FILTERS,
+  type AdFilter,
+  type CampaignStateFilter,
+  type Period,
+  type TableState,
+} from "./table-state";
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: "today", label: "오늘" },
@@ -24,6 +30,17 @@ const AD_OPTIONS: { value: AdFilter; label: string }[] = [
   { value: "ad", label: "광고" },
   { value: "non_ad", label: "비광고" },
 ];
+
+// 라벨은 상태 배지와 같게 둔다. 필터와 표가 다른 말을 쓰면 같은 건인지 헷갈린다.
+const STATE_LABELS: Record<CampaignStateFilter, string> = {
+  pending_approval: "승인 대기",
+  scheduled: "예약",
+  sending: "확인 중",
+  completed: "완료",
+  has_failed: "실패 포함",
+  rejected: "반려",
+  canceled: "취소",
+};
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -63,6 +80,13 @@ function appliedChips(
       key: "ad",
       label: filters.ad === "ad" ? "광고" : "비광고",
       clear: () => setFilters({ ad: "all" }),
+    });
+  }
+  if (filters.state) {
+    chips.push({
+      key: "state",
+      label: `발송 건 ${STATE_LABELS[filters.state]}`,
+      clear: () => setFilters({ state: null }),
     });
   }
   if (filters.status.length > 0) {
@@ -190,6 +214,26 @@ export function HistoryFilters({
           options={AD_OPTIONS}
           onChange={(ad) => setFilters({ ad })}
         />
+        <select
+          aria-label="발송 건 상태"
+          value={filters.state ?? ""}
+          onChange={(event) =>
+            setFilters({
+              state:
+                CAMPAIGN_STATE_FILTERS.find(
+                  (value) => value === event.target.value,
+                ) ?? null,
+            })
+          }
+          className="h-(--control-h) cursor-pointer rounded-md border border-border-strong bg-surface px-2 text-body-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          <option value="">모든 상태</option>
+          {CAMPAIGN_STATE_FILTERS.map((value) => (
+            <option key={value} value={value}>
+              {STATE_LABELS[value]}
+            </option>
+          ))}
+        </select>
         <div className="ml-auto flex items-center gap-2">
           <Input
             type="search"

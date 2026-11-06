@@ -6,6 +6,7 @@ import {
   canCancelCampaign,
   fallbackPollMs,
   messageCounts,
+  progressText,
   type CampaignRow,
 } from "./campaign-view";
 import type { CampaignStatus } from "./status";
@@ -30,6 +31,47 @@ const base: CampaignRow = {
   rejectedReason: null,
   retryOfCampaignId: null,
 };
+
+describe("progressText", () => {
+  it("도착 비율과 실패 수를 쓴다", () => {
+    expect(progressText(base)).toBe("도착 70% · 실패 5");
+  });
+
+  it("실패가 없으면 비율만 쓴다", () => {
+    expect(progressText({ ...base, failedCount: 0 })).toBe("도착 70%");
+  });
+
+  it("1건이라도 남으면 100%로 올리지 않는다", () => {
+    expect(
+      progressText({
+        ...base,
+        recipientCount: 1000,
+        deliveredCount: 999,
+        failedCount: 0,
+      }),
+    ).toBe("도착 99%");
+  });
+
+  it.each<[CampaignStatus, string]>([
+    ["pending_approval", "승인 후 발송"],
+    ["scheduled", "발송 전"],
+    ["rejected", "보내지 않음"],
+    ["canceled", "보내지 않음"],
+  ])("%s는 숫자 대신 %s", (status, text) => {
+    expect(progressText({ ...base, status })).toBe(text);
+  });
+
+  it("수신자가 0이어도 나누지 않는다", () => {
+    expect(
+      progressText({
+        ...base,
+        recipientCount: 0,
+        deliveredCount: 0,
+        failedCount: 0,
+      }),
+    ).toBe("도착 0%");
+  });
+});
 
 describe("campaignTitle", () => {
   it("20자까지는 그대로 둔다", () => {

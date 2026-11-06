@@ -39,8 +39,10 @@ export function SampleScreen({ total }: { total: number }) {
           {total.toLocaleString("ko-KR")}행 샘플
         </h1>
         <p className="text-body-sm text-text-muted">
-          화면에 보이는 행만 그리고, 필요한 페이지만 서버에서 받아요. 공용
-          샘플이라 읽기만 할 수 있고, 내 잔액과 발송 내역에는 영향이 없어요.{" "}
+          {total.toLocaleString("ko-KR")}행이 나뉘지 않은 한 스크롤이에요.
+          화면에 보이는 행만 그리고(표 아래 &quot;그린 행&quot;), 스크롤이 멈춘
+          자리의 행만 서버에서 받아요. 공용 샘플이라 읽기만 할 수 있고, 내
+          잔액과 발송 내역에는 영향이 없어요.{" "}
           <Link href="/history" className="underline">
             발송 내역으로 돌아가기
           </Link>

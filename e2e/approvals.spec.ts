@@ -45,11 +45,12 @@ test.describe("승인함", () => {
 
     await switchTo(page, /본사 관리자/);
     const nav = page.getByRole("navigation", { name: "주 메뉴" });
-    await expect(nav.getByRole("link", { name: /승인함/ })).toContainText("1");
+    await expect(nav.getByRole("link", { name: /승인함/ })).toContainText("2");
     await nav.getByRole("link", { name: /승인함/ }).click();
 
+    // 체험 샘플의 성수점 광고 1건이 이미 기다리고 있다.
     await expect(
-      page.getByRole("heading", { name: /승인 대기 1건/ }),
+      page.getByRole("heading", { name: /승인 대기 2건/ }),
     ).toBeVisible();
     await page.getByRole("link", { name: /주말 특가 안내/ }).click();
 
@@ -69,7 +70,9 @@ test.describe("승인함", () => {
 
     await expect(page).toHaveURL(/\/approvals\?done=approved/);
     await expect(page.getByRole("status")).toContainText("승인했어요");
-    await expect(page.getByText("승인을 기다리는 문자가 없어요")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /승인 대기 1건/ }),
+    ).toBeVisible();
 
     await switchTo(page, "지점 · 성수점");
     await expect(page.getByRole("banner")).toContainText("₩1,999,520");
@@ -153,7 +156,7 @@ test.describe("승인함", () => {
     await page.goto("/approvals");
     await expect(page.getByText("PC에서 열어 주세요")).toBeHidden();
     await expect(
-      page.getByRole("heading", { name: /승인 대기 1건/ }),
+      page.getByRole("heading", { name: /승인 대기 2건/ }),
     ).toBeVisible();
     const overflow = () =>
       page.evaluate(
