@@ -206,6 +206,8 @@ test.describe("발송 내역", () => {
     await expect(campaignTable(page).getByRole("row")).toHaveCount(9);
     await expect(campaignTable(page)).toContainText("실패 8");
 
+    // nuqs는 주소를 조금 늦게 쓰므로, 주소가 바뀐 것을 본 뒤에 새로고침한다.
+    await expect(page).toHaveURL(/state=has_failed/);
     await page.reload();
     await expect(state).toHaveValue("has_failed");
   });
