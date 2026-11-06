@@ -56,3 +56,6 @@ next-env.d.ts
 # 화면 비교 기준은 CI와 같은 Linux 이미지만 커밋한다.
 e2e/visual.spec.ts-snapshots/*-win32.png
 e2e/visual.spec.ts-snapshots/*-darwin.png
+
+# 개인 편집기 설정. 사람마다 달라 저장소에 두지 않는다
+/.vscode/
