@@ -9,8 +9,7 @@ import {
   dataTableFeatures,
   type DataTableColumn,
 } from "@/components/ui/data-table";
-import { formatWon, isLowBalance } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { formatWon } from "@/lib/format";
 import { BranchAccountDialog, BranchNameDialog } from "./branch-dialogs";
 import type { BranchRow } from "./branch-rows";
 
@@ -37,15 +36,7 @@ function buildColumns(isTrial: boolean): DataTableColumn<BranchRow>[] {
       id: "balance",
       header: "잔액",
       meta: { width: "minmax(160px, 1fr)", align: "right" },
-      cell: ({ row }) => {
-        const low = isLowBalance(row.original.balance);
-        return (
-          <span className={cn(low && "font-bold text-status-pending")}>
-            {low && <span className="mr-2 text-caption">잔액 적음</span>}
-            {formatWon(row.original.balance)}
-          </span>
-        );
-      },
+      cell: ({ row }) => formatWon(row.original.balance),
     }),
     column.display({
       id: "actions",

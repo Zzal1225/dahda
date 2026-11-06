@@ -5,8 +5,7 @@ import { getTrialRoleOptions } from "@/features/auth/trial-role-options";
 import { demoSenderNumber } from "@/features/demo/demo-config";
 import { getOwnBalance } from "@/features/billing/balance";
 import { countApprovals } from "@/features/campaigns/approval-query";
-import { formatWon, isLowBalance } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { formatWon } from "@/lib/format";
 import { getCurrentMember } from "@/server/auth/current-member";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 import { AccountMenu } from "./account-menu";
@@ -71,7 +70,6 @@ export async function TopBarSection() {
     getOwnBalance(member),
     getTrialRoleOptions(member),
   ]);
-  const low = isLowBalance(balance);
 
   return (
     <>
@@ -85,20 +83,10 @@ export async function TopBarSection() {
         {member.branchName ?? "전체 지점"}
       </span>
       <div className="ml-auto hidden items-center gap-3 md:flex">
-        <span
-          className={cn(
-            "text-caption text-text-muted",
-            low && "font-bold text-status-pending",
-          )}
-        >
+        <span className="text-caption text-text-muted">
           {member.role === "hq" ? "본사 잔액" : "잔액"}
-          {low && " 적음"}
         </span>
-        <span
-          className={cn("text-body font-bold", low && "text-status-pending")}
-        >
-          {formatWon(balance)}
-        </span>
+        <span className="text-body font-bold">{formatWon(balance)}</span>
       </div>
       <span aria-hidden className="hidden h-6 w-px bg-border md:block" />
       <span aria-hidden className="ml-auto md:hidden" />

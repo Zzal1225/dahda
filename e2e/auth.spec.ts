@@ -25,8 +25,6 @@ test.describe("체험하기", () => {
 
     await expect(header).toContainText("합정점");
     await expect(header).toContainText("₩864,200");
-    // 100만 원 미만 기준(핸드오프)
-    await expect(header).toContainText("잔액 적음");
 
     // 화면 상태만 바뀐 가짜 전환이면 새로고침에서 되돌아간다.
     await page.reload();

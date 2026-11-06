@@ -6,13 +6,6 @@ export function formatWon(amount: number): string {
   return `${sign}₩${wonFormatter.format(Math.abs(amount))}`;
 }
 
-/** 핸드오프의 "잔액 적음" 기준은 100만 원 미만이다. */
-export const LOW_BALANCE_THRESHOLD = 1_000_000;
-
-export function isLowBalance(amount: number): boolean {
-  return amount < LOW_BALANCE_THRESHOLD;
-}
-
 /** 010-1234-5678, 02-123-4567 형식. DB에는 숫자만 있고 표시할 때만 나눈다. 모르는 길이는 그대로 둔다. */
 export function formatPhone(digits: string): string {
   if (

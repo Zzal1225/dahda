@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPhone, formatWon, isLowBalance } from "./format";
+import { formatPhone, formatWon } from "./format";
 
 describe("formatWon", () => {
   it.each([
@@ -10,16 +10,6 @@ describe("formatWon", () => {
     [-1500, "-₩1,500"],
   ])("%d → %s", (amount, expected) => {
     expect(formatWon(amount)).toBe(expected);
-  });
-});
-
-describe("isLowBalance", () => {
-  it.each([
-    [999_999, true],
-    [1_000_000, false],
-    [0, true],
-  ])("%d → %s", (amount, expected) => {
-    expect(isLowBalance(amount)).toBe(expected);
   });
 });
 

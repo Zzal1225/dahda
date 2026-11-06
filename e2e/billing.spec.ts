@@ -15,7 +15,7 @@ test.describe("충전", () => {
   }) => {
     const panel = page.getByRole("region", { name: "충전", exact: true });
     await expect(panel.getByRole("button")).toHaveCount(4);
-    await expect(panel).toContainText("실제 출금은 없어요");
+    await expect(panel).toContainText("실제 결제는 이뤄지지 않아요");
     await expect(page.getByRole("table", { name: "거래 내역" })).toBeVisible();
   });
 
