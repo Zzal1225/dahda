@@ -483,9 +483,13 @@ export function RecipientTable({
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   useEffect(() => {
     if (focusIndex === null) return;
-    scrollRef.current
-      ?.querySelector<HTMLElement>(`[data-index="${focusIndex}"]`)
-      ?.focus();
+    const row = scrollRef.current?.querySelector<HTMLElement>(
+      `[data-index="${focusIndex}"]`,
+    );
+    // 체크박스를 누르면 포커스가 이미 행 안에 있다. 여기서 행으로 다시 옮기면 화면 끝에 걸친 행은
+    // 브라우저가 페이지를 스크롤하고, 마우스를 뗄 때 다른 곳이라 클릭이 사라진다(선택이 안 됨).
+    if (!row || row.contains(document.activeElement)) return;
+    row.focus();
   }, [focusIndex, loadedRows, firstVisible]);
 
   const hasError =
