@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cancelCampaign } from "@/features/campaigns/approval-actions";
 import { CAMPAIGN_LIST_LIMIT } from "@/features/campaigns/campaign-query";
 import { CampaignTable } from "@/features/campaigns/campaign-table";
+import { DeliveryReceiptCard } from "@/features/campaigns/delivery-receipt-card";
 import {
   campaignTitle,
   canCancelCampaign,
@@ -304,6 +305,13 @@ export function HistoryScreen({
               />
             )}
           </div>
+          {/* 보낸 건에만 둔다. 승인 대기·예약·반려·취소는 증명할 도착이 없어 빈 단계만 보이게 된다.
+              key를 주지 않는다. 캐시 키에 발송 건 id가 있어 건이 바뀌면 다시 읽고, 형제인 수신자 표가 이미
+              key={selected.id}를 써서 같은 key를 주면 React가 이전 확인증을 지우지 못하고 둘을 함께 그린다. */}
+          {(selected.status === "sending" ||
+            selected.status === "completed") && (
+            <DeliveryReceiptCard scope={scope} campaign={selected} />
+          )}
           {selected.rejectedReason && (
             <p
               role="note"

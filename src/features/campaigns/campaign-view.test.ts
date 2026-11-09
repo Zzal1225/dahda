@@ -5,6 +5,7 @@ import {
   campaignTitle,
   canCancelCampaign,
   fallbackPollMs,
+  isFullyDelivered,
   messageCounts,
   progressText,
   type CampaignRow,
@@ -244,4 +245,20 @@ describe("fallbackPollMs", () => {
       ),
     ).toBe(expected);
   });
+});
+
+describe("isFullyDelivered", () => {
+  it.each([
+    ["completed", 30, 30, true],
+    ["completed", 30, 29, false],
+    ["sending", 30, 30, false],
+    ["completed", 0, 0, false],
+  ] as const)(
+    "%s %d명 중 %d 도착 → %s",
+    (status, recipientCount, deliveredCount, expected) => {
+      expect(isFullyDelivered({ status, recipientCount, deliveredCount })).toBe(
+        expected,
+      );
+    },
+  );
 });

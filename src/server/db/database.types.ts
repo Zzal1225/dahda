@@ -417,6 +417,11 @@ isOneToOne: false
 "approve_campaign":
 { Args: { "p_campaign_id": string,"p_org_id": string,"p_reviewer": string }; Returns: undefined
                            },
+"campaign_receipt":
+{ Args: { "p_campaign_id": string }; Returns: {
+              "accepted_late": number,"awaiting": number,"carrier_failed": number,"completed_at": string,"delivered": number,"first_accepted_at": string,"first_delivered_at": string,"first_result_at": string,"queued": number,"started_at": string,"vendor_failed": number,"webhook_count": number,"webhook_ignored": number
+            }[]
+                           },
 "cancel_campaign":
 { Args: { "p_branch_id": string,"p_campaign_id": string,"p_org_id": string }; Returns: undefined
                            },

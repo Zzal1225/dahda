@@ -76,19 +76,6 @@ export function sortActive<T extends { status: string }>(
   return [...rows].sort((a, b) => rank(a.status) - rank(b.status));
 }
 
-/** 끝났고 한 건도 빠짐없이 도착했다. 진행 막대 대신 "도착 확인" 도장을 찍는다. */
-export function isFullyDelivered(campaign: {
-  status: string;
-  recipientCount: number;
-  deliveredCount: number;
-}): boolean {
-  return (
-    campaign.status === "completed" &&
-    campaign.recipientCount > 0 &&
-    campaign.deliveredCount === campaign.recipientCount
-  );
-}
-
 /** "n시간 m분 뒤 발송". 이미 지났으면 워커가 곧 집으므로 시간을 말하지 않는다. */
 export function timeUntil(target: string | null, now: Date): string {
   const minutes = target
