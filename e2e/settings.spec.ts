@@ -39,7 +39,7 @@ test.describe("엑셀 내보내기", () => {
     await page.goto("/contacts");
     const [download] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByRole("link", { name: "엑셀 내보내기" }).click(),
+      page.getByRole("link", { name: "내보내기" }).click(),
     ]);
     expect(download.suggestedFilename()).toBe("dahda-contacts.xlsx");
     const book = XLSX.readFile(await download.path());
@@ -57,9 +57,7 @@ test.describe("엑셀 내보내기", () => {
     await page.getByRole("menuitemradio", { name: /지점 · 합정점/ }).click();
     await expect(page.getByRole("banner")).toContainText("합정점");
     await page.goto("/contacts");
-    await expect(page.getByRole("link", { name: "엑셀 내보내기" })).toHaveCount(
-      0,
-    );
+    await expect(page.getByRole("link", { name: "내보내기" })).toHaveCount(0);
     const response = await page.request.get("/api/contacts/export", {
       maxRedirects: 0,
     });

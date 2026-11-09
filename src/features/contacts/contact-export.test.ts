@@ -12,7 +12,9 @@ const row = (over: Partial<ContactRow>): ContactRow => ({
   name: "김손님",
   memo: null,
   consentAt: null,
+  createdAt: "2026-11-01T00:00:00.000Z",
   groupIds: [],
+  receiveStatus: "not_consented",
   optedOut: false,
   ...over,
 });

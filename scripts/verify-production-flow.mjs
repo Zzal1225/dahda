@@ -47,17 +47,19 @@ try {
   await expect(page.getByRole("banner")).toContainText(BRANCH);
   const before = await page.getByRole("banner").innerText();
 
-  await page.goto("/contacts/upload");
+  await page.goto("/contacts");
   // 화면이 준비되기 전에 파일을 넣으면 이벤트를 놓친다. 사람은 이 속도로 고를 수 없으므로 준비를 기다린다.
   await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "엑셀 업로드" }).click();
+  await expect(page.getByRole("button", { name: "파일 선택" })).toBeVisible();
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(
     book,
     XLSX.utils.aoa_to_sheet([
-      ["전화번호", "이름", "메모", "수신 동의"],
-      ["010-0000-7101", "시험손님1", "운영 시험", "Y"],
-      ["010-0000-7102", "시험손님2", "운영 시험", "2026-03-01"],
-      ["010-0000-7103", "시험손님3", "운영 시험", "N"],
+      ["전화번호", "이름", "그룹", "메모", "수신 동의"],
+      ["010-0000-7101", "시험손님1", "단골", "운영 시험", "Y"],
+      ["010-0000-7102", "시험손님2", "단골", "운영 시험", "2026-03-01"],
+      ["010-0000-7103", "시험손님3", "단골", "운영 시험", "N"],
     ]),
     "시트",
   );
@@ -67,19 +69,19 @@ try {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     buffer: Buffer.from(XLSX.write(book, { type: "buffer", bookType: "xlsx" })),
   });
-  await expect(
-    page.getByRole("group", { name: "저장할 수 있어요", exact: true }),
-  ).toContainText("3", { timeout: 20_000 });
   await page
-    .getByRole("combobox", { name: "저장할 그룹" })
-    .selectOption({ label: "단골 손님" });
-  await page.getByRole("button", { name: "3명 저장" }).click();
-  await expect(page.getByText("3명을 저장했어요")).toBeVisible();
+    .getByRole("button", { name: "3행 처리 시작" })
+    .click({ timeout: 20_000 });
+  await expect(page.getByRole("region", { name: "업로드 결과" })).toContainText(
+    "3명을 추가했어요",
+    { timeout: 30_000 },
+  );
   step("엑셀 업로드 3명 저장");
   await shot("1-upload");
+  await page.getByRole("button", { name: "닫기" }).click();
 
   await page.goto("/compose");
-  await page.getByRole("checkbox", { name: /단골 손님/ }).check();
+  await page.getByRole("checkbox", { name: /단골/ }).check();
   await page.getByRole("textbox", { name: "보낼 내용" }).fill(TEXT);
   await page.getByRole("switch", { name: "광고 문자예요" }).check();
   await expect(

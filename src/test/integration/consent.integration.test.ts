@@ -105,7 +105,9 @@ describe("광고 수신 동의", () => {
     expect(result.duplicates).toBe(1);
   });
 
-  it("체험 샘플은 약 80%가 동의다", async () => {
+  // 샘플은 무작위(20261106000500): 지점마다 500명, 동의 약 92%, 미동의 약 5%, 수신거부 약 3%.
+  // 무작위라 범위로 본다. 1,500명이면 표준편차가 1%p 안쪽이라 넉넉한 범위에서 흔들리지 않는다.
+  it("체험 샘플은 대부분 동의이고 일부는 미동의·수신거부다", async () => {
     const { data: user } = await service.auth.admin.createUser({
       email: `consent-${randomUUID()}@example.com`,
       email_confirm: true,
@@ -122,8 +124,16 @@ describe("광고 수신 동의", () => {
       .select("id", { count: "exact", head: true })
       .eq("org_id", org)
       .not("consent_at", "is", null);
-    expect(total.count).toBe(180);
-    expect(consented.count).toBe(144);
+    const optOuts = await service
+      .from("opt_outs")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", org);
+    expect(total.count).toBe(1500);
+    const consentRate = (consented.count ?? 0) / 1500;
+    expect(consentRate).toBeGreaterThan(0.87);
+    expect(consentRate).toBeLessThan(0.97);
+    expect(optOuts.count).toBeGreaterThan(15);
+    expect(optOuts.count).toBeLessThan(80);
 
     await service
       .from("organizations")

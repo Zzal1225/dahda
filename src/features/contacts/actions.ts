@@ -220,6 +220,42 @@ export async function deleteGroup(groupId: unknown): Promise<ActionResult> {
   revalidatePath("/contacts");
 }
 
+/** 표에서 고른 연락처를 그룹에 넣는다. 한 번에 넣을 수 있는 수는 한 페이지 선택을 넉넉히 넘는 정도로 둔다. */
+const MAX_GROUP_ADD = 1_000;
+const addToGroupSchema = z.object({
+  groupId: z.uuid(),
+  contactIds: z.array(z.uuid()).min(1).max(MAX_GROUP_ADD),
+});
+
+/**
+ * 이미 그 그룹에 있는 사람은 건너뛴다(기본 키 group_id, contact_id). 두 번 눌러도 오류가 나지 않아야 한다.
+ * 다른 지점 연락처나 그룹이면 복합 외래 키가 묶음 전체를 거부한다. 지점 소속은 세션에서 읽는다.
+ */
+export async function addContactsToGroup(
+  input: unknown,
+): Promise<{ added: number } | { error: string }> {
+  const member = await requireBranchMember();
+  const parsed = addToGroupSchema.safeParse(input);
+  if (!parsed.success) return { error: "고른 연락처를 확인해 주세요" };
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("contact_group_members")
+    .upsert(
+      parsed.data.contactIds.map((contactId) => ({
+        group_id: parsed.data.groupId,
+        contact_id: contactId,
+        org_id: member.orgId,
+        branch_id: member.branchId,
+      })),
+      { onConflict: "group_id,contact_id", ignoreDuplicates: true },
+    )
+    .select("contact_id");
+  if (error) return { error: "그룹에 넣지 못했어요" };
+  revalidatePath("/contacts");
+  return { added: data.length };
+}
+
 export async function addOptOut(input: unknown): Promise<ActionResult> {
   const member = await requireRole(["hq", "branch"]);
   const parsed = optOutSchema.safeParse(input);

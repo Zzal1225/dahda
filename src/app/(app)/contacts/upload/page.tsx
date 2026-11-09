@@ -1,30 +1,10 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import { UploadScreen } from "@/features/contacts/upload/upload-screen";
-import { requireRole } from "@/server/auth/requireRole";
-import { createSupabaseServerClient } from "@/server/supabase/server";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "엑셀 업로드 · dahda" };
-
-async function Upload() {
-  // 주소록 쓰기는 지점만 한다. 본사는 주소록 화면에 버튼이 없고 주소로 들어와도 돌아간다.
-  await requireRole(["branch"]);
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("contact_groups")
-    .select("id, name")
-    .order("name");
-  if (error) throw new Error(`그룹 조회 실패: ${error.message}`);
-
-  return <UploadScreen groups={data} />;
-}
-
-export default function UploadPage() {
-  return (
-    <Suspense
-      fallback={<div aria-hidden className="h-64 rounded-lg bg-skeleton" />}
-    >
-      <Upload />
-    </Suspense>
-  );
+/**
+ * 엑셀 업로드는 주소록 화면의 대화상자가 되었다. 예전 주소로 들어오면 주소록으로 보낸다.
+ * 업로드 화면을 따로 두지 않는 이유: 다 올린 뒤 결과를 확인하러 주소록으로 다시 가야 했고,
+ * 어느 그룹·지점에 넣는지 문맥이 화면을 넘어가며 끊겼다.
+ */
+export default function UploadRedirect() {
+  redirect("/contacts");
 }
