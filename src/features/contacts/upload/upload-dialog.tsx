@@ -226,6 +226,7 @@ export function UploadDialog({
     const controller = new AbortController();
     abort.current = controller;
     const started = clock();
+    mark("upload:process-start");
 
     setPhase({
       name: "processing",
@@ -256,6 +257,7 @@ export function UploadDialog({
       reset(classified.error);
       return;
     }
+    mark("upload:classify-end");
     let rows = classified.value;
 
     // 서버 확인: 그 지점 주소록에 있는 번호, 본사 공통 수신거부.
@@ -327,6 +329,7 @@ export function UploadDialog({
       inserted += result.inserted;
     }
 
+    mark("upload:process-end");
     closeSession();
     setPhase({
       name: "done",
