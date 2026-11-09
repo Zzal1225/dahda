@@ -278,7 +278,7 @@ export function ComposeScreen({
                   아직 그룹이 없어요. 주소록에서 그룹을 만들어 주세요.
                 </p>
               ) : (
-                <ul className="flex flex-col">
+                <ul aria-label="받는 그룹" className="flex flex-col">
                   {groups.map((group) => (
                     <li key={group.id}>
                       <label className="flex min-h-11 cursor-pointer items-center gap-3 border-b border-border text-body-sm last:border-b-0">

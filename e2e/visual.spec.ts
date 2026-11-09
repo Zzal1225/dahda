@@ -23,6 +23,8 @@ const SCREENS: {
   path: string;
   ready: (page: Page) => Locator;
   mask: (page: Page) => Locator[];
+  /** 찍기 전에 화면을 고정한다. 가리기는 높이를 못 잡으므로 줄 수가 달라지는 곳에 쓴다. */
+  prepare?: (page: Page) => Promise<unknown>;
 }[] = [
   {
     name: "home",
@@ -45,7 +47,18 @@ const SCREENS: {
     name: "compose",
     path: "/compose",
     ready: (page) => page.getByRole("heading", { name: "문자 작성" }),
-    mask: (page) => [page.locator("select")],
+    // 체험 샘플의 그룹은 지점마다 4~5개이고 이름과 인원도 무작위라 페이지 높이가 계정마다 다르다.
+    // 기준 이미지만 바꾸면 다음 실행에서 또 깨진다. 3개 지점의 최소인 12줄 안에서 6줄만 남기고
+    // 글자만 가려, 체크박스와 줄 간격은 계속 비교한다.
+    prepare: (page) =>
+      page.addStyleTag({
+        content:
+          '[aria-label="받는 그룹"] > li:nth-child(n + 7) { display: none; }',
+      }),
+    mask: (page) => [
+      page.locator("select"),
+      page.getByRole("list", { name: "받는 그룹" }).locator("label > span"),
+    ],
   },
   {
     name: "approvals",
@@ -71,6 +84,7 @@ test.describe("화면 비교", () => {
         // 글꼴이 늦게 오면 글자 폭이 달라져 비교가 흔들린다.
         await page.evaluate(() => document.fonts.ready);
         await page.waitForLoadState("networkidle").catch(() => {});
+        await screen.prepare?.(page);
         await expect(page).toHaveScreenshot(`${screen.name}-${width}.png`, {
           fullPage: true,
           animations: "disabled",
