@@ -49,16 +49,16 @@ const SCREENS: {
     ready: (page) => page.getByRole("heading", { name: "문자 작성" }),
     // 체험 샘플의 그룹은 지점마다 4~5개이고 이름과 인원도 무작위라 페이지 높이가 계정마다 다르다.
     // 기준 이미지만 바꾸면 다음 실행에서 또 깨진다. 3개 지점의 최소인 12줄 안에서 6줄만 남기고
-    // 글자만 가려, 체크박스와 줄 간격은 계속 비교한다.
+    // 글자를 숨겨, 체크박스와 줄 간격은 계속 비교한다.
+    // mask를 쓰지 않는 이유: 가림 상자가 글자 폭을 따라가 이름 길이에 따라 결과가 달라진다.
     prepare: (page) =>
       page.addStyleTag({
-        content:
-          '[aria-label="받는 그룹"] > li:nth-child(n + 7) { display: none; }',
+        content: `
+          [aria-label="받는 그룹"] > li:nth-child(n + 7) { display: none; }
+          [aria-label="받는 그룹"] label > span { visibility: hidden; }
+        `,
       }),
-    mask: (page) => [
-      page.locator("select"),
-      page.getByRole("list", { name: "받는 그룹" }).locator("label > span"),
-    ],
+    mask: (page) => [page.locator("select")],
   },
   {
     name: "approvals",
