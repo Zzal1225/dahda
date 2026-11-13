@@ -329,12 +329,12 @@ test.describe("발송 내역", () => {
     page,
   }) => {
     await openHistoryAsTrial(page);
-    const kind = page.getByRole("radiogroup", { name: "문자 종류" });
+    const kind = page.getByRole("combobox", { name: "문자 종류" });
     const rows = campaignTable(page).getByRole("row");
     // 머리글 1행 + 체험 샘플 10건. 그중 본사의 LMS가 2건이다.
     await expect(rows).toHaveCount(11);
 
-    await kind.getByRole("radio", { name: "LMS" }).click();
+    await kind.selectOption("lms");
     await expect(page).toHaveURL(/kind=lms/);
     await expect(rows).toHaveCount(3);
     for (const row of await rows.all()) {
@@ -344,7 +344,7 @@ test.describe("발송 내역", () => {
       page.getByRole("button", { name: "LMS 필터 지우기" }),
     ).toBeVisible();
 
-    await kind.getByRole("radio", { name: "SMS" }).click();
+    await kind.selectOption("sms");
     await expect(page).toHaveURL(/kind=sms/);
     await expect(rows).toHaveCount(9);
 
