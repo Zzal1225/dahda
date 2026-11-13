@@ -5,9 +5,10 @@ import {
   toCampaignRow,
 } from "@/features/campaigns/campaign-query";
 import type { CampaignRow } from "@/features/campaigns/campaign-view";
-import { periodToRange } from "@/lib/kst";
+import { kstBuckets, periodToRange } from "@/lib/kst";
 import type { Database } from "@/server/db/database.types";
 import { sortActive, type TodayTotals } from "./home-summary";
+import { fillTrend, TREND_SPAN, type TrendPoint } from "./trend";
 
 const ACTIVE_LIMIT = 5;
 const PENDING_LIMIT = 3;
@@ -25,6 +26,8 @@ export type HomeData = {
   recent: CampaignRow[];
   balances: { branch_id: string | null; balance: number | null }[];
   branches: { id: string; name: string }[];
+  /** 발송 추이. 단위 전환이 서버 왕복 없이 바로 바뀌도록 두 단위를 함께 받는다(합쳐 42칸). */
+  trend: { day: TrendPoint[]; month: TrendPoint[] };
 };
 
 /**
@@ -38,6 +41,8 @@ export async function loadHome(
   const { from } = periodToRange("today", null, null, options.now);
   const todayStart = from ?? options.now.toISOString();
   const campaigns = () => supabase.from("campaigns").select(CAMPAIGN_COLUMNS);
+  const dayBuckets = kstBuckets("day", TREND_SPAN.day, options.now);
+  const monthBuckets = kstBuckets("month", TREND_SPAN.month, options.now);
 
   const [
     today,
@@ -48,6 +53,8 @@ export async function loadHome(
     recent,
     balances,
     branches,
+    dayTrend,
+    monthTrend,
   ] = await Promise.all([
     // 예약은 오늘 나간 건이 아니다. 시작 시각으로 세어야 어제 예약해 오늘 나간 건이 들어온다.
     supabase.rpc("today_campaign_summary", { p_from: todayStart }),
@@ -88,6 +95,11 @@ export async function loadHome(
     options.isHq
       ? supabase.from("branches").select("id, name").order("name")
       : Promise.resolve({ data: [], error: null }),
+    supabase.rpc("campaign_trend", { p_from: dayBuckets.start, p_unit: "day" }),
+    supabase.rpc("campaign_trend", {
+      p_from: monthBuckets.start,
+      p_unit: "month",
+    }),
   ]);
 
   const failure =
@@ -98,7 +110,9 @@ export async function loadHome(
     pending.error ??
     recent.error ??
     balances.error ??
-    branches.error;
+    branches.error ??
+    dayTrend.error ??
+    monthTrend.error;
   if (failure) throw new Error(`첫 화면 조회 실패: ${failure.message}`);
 
   return {
@@ -114,5 +128,9 @@ export async function loadHome(
     recent: (recent.data ?? []).map(toCampaignRow),
     balances: balances.data ?? [],
     branches: branches.data ?? [],
+    trend: {
+      day: fillTrend(dayTrend.data ?? [], dayBuckets.keys, "day"),
+      month: fillTrend(monthTrend.data ?? [], monthBuckets.keys, "month"),
+    },
   };
 }

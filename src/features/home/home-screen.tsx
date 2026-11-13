@@ -26,6 +26,7 @@ import {
   toTodaySummary,
 } from "./home-summary";
 import { RecentTable } from "./recent-table";
+import { TrendCard } from "./trend-card";
 
 const won = (amount: number) => amount.toLocaleString("ko-KR");
 
@@ -410,6 +411,9 @@ export function HomeScreen({
           )}
         </div>
       </div>
+
+      {/* 오늘 띠와 진행 중 카드 아래에 둔다. 지금 할 일(진행·승인)이 위, 지난 결과의 흐름이 아래다. */}
+      <TrendCard day={data.trend.day} month={data.trend.month} />
 
       <section aria-label="최근 발송 목록" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

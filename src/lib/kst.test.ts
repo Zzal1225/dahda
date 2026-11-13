@@ -3,6 +3,7 @@ import {
   formatKstDateTime,
   formatKstMonthDayWeekday,
   formatKstTime,
+  kstBuckets,
   kstDayOptions,
   kstDayTimeToUtc,
   kstHour,
@@ -134,5 +135,38 @@ describe("kstTimeOptions", () => {
     expect(options[0]).toBe("00:00");
     expect(options[1]).toBe("00:30");
     expect(options[47]).toBe("23:30");
+  });
+});
+
+describe("kstBuckets", () => {
+  it("일별은 오늘을 포함한 칸이고 시작은 첫날 KST 0시다", () => {
+    // UTC 11-12 15:30 = KST 11-13 00:30. 서버(UTC)로는 아직 12일이다.
+    const result = kstBuckets("day", 3, new Date("2026-11-12T15:30:00Z"));
+    expect(result.keys).toEqual(["2026-11-11", "2026-11-12", "2026-11-13"]);
+    expect(result.start).toBe("2026-11-10T15:00:00.000Z");
+  });
+
+  it("KST 자정 직전은 아직 그날이다", () => {
+    const result = kstBuckets("day", 1, new Date("2026-11-13T14:59:59Z"));
+    expect(result.keys).toEqual(["2026-11-13"]);
+  });
+
+  it("월말을 넘어 날짜를 센다", () => {
+    expect(kstBuckets("day", 3, new Date("2026-03-01T03:00:00Z")).keys).toEqual(
+      ["2026-02-27", "2026-02-28", "2026-03-01"],
+    );
+  });
+
+  it("월별은 1일을 키로 하고 해를 넘어 센다", () => {
+    const result = kstBuckets("month", 3, new Date("2026-01-20T00:00:00Z"));
+    expect(result.keys).toEqual(["2025-11-01", "2025-12-01", "2026-01-01"]);
+    expect(result.start).toBe("2025-10-31T15:00:00.000Z");
+  });
+
+  it("월 첫날 KST 0시 직후는 그 달이다", () => {
+    // UTC 10-31 15:00 = KST 11-01 00:00
+    expect(
+      kstBuckets("month", 1, new Date("2026-10-31T15:00:00Z")).keys,
+    ).toEqual(["2026-11-01"]);
   });
 });
