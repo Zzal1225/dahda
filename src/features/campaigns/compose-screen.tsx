@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Lock } from "lucide-react";
+import { Lock, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -38,6 +38,11 @@ import {
   UNIT_PRICE,
   type CampaignInput,
 } from "./campaignSchema";
+import {
+  directPhoneMessage,
+  MAX_DIRECT_PHONES,
+  parseDirectPhones,
+} from "./direct-phones";
 
 export type GroupOption = {
   id: string;
@@ -89,9 +94,11 @@ export function ComposeScreen({
   const [pending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string>();
   const [confirming, setConfirming] = useState(false);
-  const [recipientTab, setRecipientTab] = useState<"group" | "contact">(
-    initialContactIds.length > 0 ? "contact" : "group",
-  );
+  const [recipientTab, setRecipientTab] = useState<
+    "group" | "contact" | "direct"
+  >(initialContactIds.length > 0 ? "contact" : "group");
+  const [directText, setDirectText] = useState("");
+  const [directNote, setDirectNote] = useState("");
   const [summary, setSummary] = useState<RecipientSummary | null>(null);
   const [contactQuery, setContactQuery] = useState("");
   const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
@@ -136,6 +143,7 @@ export function ComposeScreen({
       clientRequestId,
       groupIds: [],
       contactIds: [...initialContactIds],
+      phones: [],
       isAd: false,
       body: "",
       senderId: defaultSender?.id ?? "",
@@ -147,6 +155,7 @@ export function ComposeScreen({
 
   const groupIds = watch("groupIds");
   const contactIds = watch("contactIds");
+  const phones = watch("phones");
   const isAd = watch("isAd");
   const body = watch("body");
   const senderId = watch("senderId");
@@ -165,23 +174,29 @@ export function ComposeScreen({
     : 0;
 
   // 선택이 바뀔 때마다 서버에서 실제 수신자 수를 다시 센다. 저장과 같은 계산이어야 숫자를 믿을 수 있다.
-  const selectionKey = JSON.stringify([groupIds, contactIds, isAd]);
+  const selectionKey = JSON.stringify([groupIds, contactIds, phones, isAd]);
   useEffect(() => {
     let current = true;
     const timer = setTimeout(() => {
-      if (groupIds.length === 0 && contactIds.length === 0) {
+      if (
+        groupIds.length === 0 &&
+        contactIds.length === 0 &&
+        phones.length === 0
+      ) {
         if (current) setSummary(null);
         return;
       }
-      void previewRecipients({ groupIds, contactIds, isAd }).then((result) => {
-        if (current && !("error" in result)) setSummary(result);
-      });
+      void previewRecipients({ groupIds, contactIds, phones, isAd }).then(
+        (result) => {
+          if (current && !("error" in result)) setSummary(result);
+        },
+      );
     }, 200);
     return () => {
       current = false;
       clearTimeout(timer);
     };
-    // groupIds·contactIds는 내용이 같아도 새 배열이라 문자열로 비교한다.
+    // 선택 배열들은 내용이 같아도 새 배열이라 문자열로 비교한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectionKey]);
 
@@ -204,7 +219,8 @@ export function ComposeScreen({
   const needsApproval = isAd && isBranch;
   const shortage = !needsApproval && cost > balance ? cost - balance : 0;
   const noRecipients =
-    groupIds.length + contactIds.length > 0 && summary?.total === 0;
+    groupIds.length + contactIds.length + phones.length > 0 &&
+    summary?.total === 0;
   const canSubmit = isValid && total > 0 && shortage === 0 && !pending;
 
   const buttonLabel = needsApproval
@@ -233,6 +249,23 @@ export function ComposeScreen({
         : [...current, id],
       { shouldValidate: true, shouldDirty: true },
     );
+  }
+
+  // 맞는 번호만 목록으로 옮기고 틀린 조각은 입력창에 남긴다. 한 번에 다 지우면 무엇이 틀렸는지 다시 찾아야 한다.
+  function addDirectPhones() {
+    const result = parseDirectPhones(directText, phones);
+    if (result.added.length > 0) {
+      setValue("phones", [...phones, ...result.added], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+    setDirectText(result.invalid.join("\n"));
+    setDirectNote(directPhoneMessage(result));
+  }
+
+  function setPhones(next: string[]) {
+    setValue("phones", next, { shouldValidate: true, shouldDirty: true });
   }
 
   function submit(values: CampaignInput) {
@@ -268,6 +301,7 @@ export function ComposeScreen({
               options={[
                 { value: "group", label: "그룹 선택" },
                 { value: "contact", label: "주소록에서 선택" },
+                { value: "direct", label: "직접 입력" },
               ]}
               onChange={setRecipientTab}
             />
@@ -375,6 +409,84 @@ export function ComposeScreen({
               </div>
             )}
 
+            {recipientTab === "direct" && (
+              <div className="flex flex-col gap-2">
+                <textarea
+                  aria-label="번호 직접 입력"
+                  rows={4}
+                  placeholder={
+                    "줄바꿈이나 쉼표로 나눠 넣어 주세요\n010-1234-5678, 010-2345-6789"
+                  }
+                  value={directText}
+                  onChange={(event) => setDirectText(event.target.value)}
+                  className="resize-y rounded-md border border-border-strong bg-surface p-3 text-body-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-caption text-text-muted">
+                    {MAX_DIRECT_PHONES.toLocaleString("ko-KR")}개까지 · 엑셀 한
+                    열을 복사해 붙여 넣어도 돼요
+                  </span>
+                  <Button
+                    variant="secondary"
+                    disabled={!directText.trim()}
+                    onClick={addDirectPhones}
+                  >
+                    번호 추가
+                  </Button>
+                </div>
+                {directNote && (
+                  <p
+                    aria-live="polite"
+                    className="text-caption text-text-muted"
+                  >
+                    {directNote}
+                  </p>
+                )}
+                {phones.length > 0 && (
+                  <div className="flex flex-col gap-2 rounded-md bg-primary-subtle px-3 py-2 text-body-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>
+                        직접 넣은 번호{" "}
+                        <b className="tabular-nums">
+                          {phones.length.toLocaleString("ko-KR")}개
+                        </b>
+                      </span>
+                      <Button
+                        variant="ghost"
+                        className="h-8"
+                        onClick={() => setPhones([])}
+                      >
+                        모두 빼기
+                      </Button>
+                    </div>
+                    <ul
+                      aria-label="직접 넣은 번호"
+                      className="flex max-h-40 flex-wrap gap-1 overflow-y-auto"
+                    >
+                      {phones.map((phone) => (
+                        <li
+                          key={phone}
+                          className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-surface pr-1 pl-2.5 text-caption tabular-nums"
+                        >
+                          {formatPhone(phone)}
+                          <button
+                            type="button"
+                            aria-label={`${formatPhone(phone)} 빼기`}
+                            onClick={() =>
+                              setPhones(phones.filter((item) => item !== phone))
+                            }
+                            className="grid size-5 cursor-pointer place-items-center rounded-full text-text-muted hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
+                          >
+                            <X aria-hidden className="size-3" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div
               role="status"
               className={cn(
@@ -397,8 +509,8 @@ export function ComposeScreen({
               )}
             </div>
             <p className="text-caption text-text-muted">
-              광고 문자는 수신 동의를 받은 번호에만 나가요. 미동의 번호는
-              자동으로 빠져요.
+              광고 문자는 수신 동의를 받은 번호에만 나가요. 미동의 번호와
+              주소록에 없는 직접 입력 번호는 자동으로 빠져요.
             </p>
           </Section>
 

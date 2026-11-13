@@ -70,13 +70,14 @@ describe.skipIf(!existsSync(implementation))("useTableState", () => {
 
     it("새로고침해도 모든 필터를 복원한다", async () => {
       const { result } = await setup(
-        `?period=30d&branch=b1&ad=ad&state=has_failed&status=failed,sent&q=0101&campaign=${CAMPAIGN_A}&page=3&size=500&sort=finalized_at.asc`,
+        `?period=30d&branch=b1&ad=ad&kind=lms&state=has_failed&status=failed,sent&q=0101&campaign=${CAMPAIGN_A}&page=3&size=500&sort=finalized_at.asc`,
       );
 
       expect(result.current.filters).toMatchObject({
         period: "30d",
         branch: "b1",
         ad: "ad",
+        kind: "lms",
         state: "has_failed",
         status: ["failed", "sent"],
         q: "0101",
@@ -105,6 +106,7 @@ describe.skipIf(!existsSync(implementation))("useTableState", () => {
     it.each([
       ["없는 기간", "?period=1y", { filters: { period: "7d" } }],
       ["없는 광고 값", "?ad=maybe", { filters: { ad: "all" } }],
+      ["없는 문자 종류", "?kind=mms", { filters: { kind: "all" } }],
       ["없는 발송 건 상태", "?state=draft", { filters: { state: null } }],
       ["허용되지 않은 페이지 크기", "?size=1000000", { pageSize: 100 }],
       ["숫자가 아닌 페이지", "?page=abc", { page: 1 }],

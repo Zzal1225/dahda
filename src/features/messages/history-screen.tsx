@@ -130,11 +130,15 @@ export function HistoryScreen({
         to: range.to,
         branch: filters.branch,
         ad: filters.ad,
+        kind: filters.kind,
         state: filters.state,
       },
     ],
     queryFn: ({ signal }) => {
-      const params = new URLSearchParams({ ad: filters.ad });
+      const params = new URLSearchParams({
+        ad: filters.ad,
+        kind: filters.kind,
+      });
       if (range.from) params.set("from", range.from);
       if (range.to) params.set("to", range.to);
       if (filters.branch) params.set("branch", filters.branch);

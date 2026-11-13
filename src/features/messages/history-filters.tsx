@@ -15,6 +15,7 @@ import {
   CAMPAIGN_STATE_FILTERS,
   type AdFilter,
   type CampaignStateFilter,
+  type KindFilter,
   type Period,
   type TableState,
 } from "./table-state";
@@ -29,6 +30,12 @@ const AD_OPTIONS: { value: AdFilter; label: string }[] = [
   { value: "all", label: "전체" },
   { value: "ad", label: "광고" },
   { value: "non_ad", label: "비광고" },
+];
+
+const KIND_OPTIONS: { value: KindFilter; label: string }[] = [
+  { value: "all", label: "전체" },
+  { value: "sms", label: "SMS" },
+  { value: "lms", label: "LMS" },
 ];
 
 // 라벨은 상태 배지와 같게 둔다. 필터와 표가 다른 말을 쓰면 같은 건인지 헷갈린다.
@@ -80,6 +87,13 @@ function appliedChips(
       key: "ad",
       label: filters.ad === "ad" ? "광고" : "비광고",
       clear: () => setFilters({ ad: "all" }),
+    });
+  }
+  if (filters.kind !== "all") {
+    chips.push({
+      key: "kind",
+      label: filters.kind.toUpperCase(),
+      clear: () => setFilters({ kind: "all" }),
     });
   }
   if (filters.state) {
@@ -213,6 +227,12 @@ export function HistoryFilters({
           value={filters.ad}
           options={AD_OPTIONS}
           onChange={(ad) => setFilters({ ad })}
+        />
+        <Segmented
+          label="문자 종류"
+          value={filters.kind}
+          options={KIND_OPTIONS}
+          onChange={(kind) => setFilters({ kind })}
         />
         <select
           aria-label="발송 건 상태"

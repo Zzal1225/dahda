@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     to: params.get("to"),
     branch: params.get("branch"),
     ad: params.get("ad") ?? undefined,
+    kind: params.get("kind") ?? undefined,
     state: params.get("state"),
   });
   if (!parsed.success) {

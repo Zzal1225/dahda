@@ -252,6 +252,17 @@ describe("listCampaigns", () => {
     expect(nonAds.length).toBeGreaterThan(0);
   });
 
+  it("문자 종류로 거르고, 두 종류를 합치면 전체와 같다", async () => {
+    const client = await asUser("hq");
+    const all = await listCampaigns(client, campaignQuery());
+    const sms = await listCampaigns(client, campaignQuery({ kind: "sms" }));
+    const lms = await listCampaigns(client, campaignQuery({ kind: "lms" }));
+
+    expect(sms.every((row) => row.kind === "sms")).toBe(true);
+    expect(lms.every((row) => row.kind === "lms")).toBe(true);
+    expect(sms.length + lms.length).toBe(all.length);
+  });
+
   it("작성 중인 건은 내역에 나오지 않는다", async () => {
     const draft = must(
       await service

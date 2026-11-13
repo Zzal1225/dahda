@@ -24,6 +24,7 @@ const valid: CampaignInput = {
   clientRequestId: "5eed0000-0000-4000-8000-000000000001",
   groupIds: ["5eed0000-0000-4000-8000-000000000002"],
   contactIds: [],
+  phones: [],
   isAd: false,
   body: "안녕하세요",
   senderId: "5eed0000-0000-4000-8000-000000000003",
@@ -153,6 +154,34 @@ describe("campaignSchema", () => {
           contactIds: ["5eed0000-0000-4000-8000-000000000004"],
         }),
       ).toEqual({});
+    });
+
+    it("직접 입력한 번호만 있어도 된다", () => {
+      expect(
+        errorsOf({ groupIds: [], contactIds: [], phones: ["01012345678"] }),
+      ).toEqual({});
+    });
+
+    // 화면이 정규화해서 보낸다. 하이픈이 남은 값은 다른 번호로 저장될 수 있어 서버가 받지 않는다.
+    it.each(["010-1234-5678", "0101234567", "abc"])(
+      "정규화되지 않은 번호 %j를 거부한다",
+      (phone) => {
+        expect(errorsOf({ phones: [phone] }).phones).toBe(
+          "형식이 틀린 번호가 있어요",
+        );
+      },
+    );
+
+    it("직접 입력은 1,000개까지다", () => {
+      const phones = (count: number) =>
+        Array.from(
+          { length: count },
+          (_, index) => `010${String(index).padStart(8, "0")}`,
+        );
+      expect(errorsOf({ phones: phones(1_000) }).phones).toBeUndefined();
+      expect(errorsOf({ phones: phones(1_001) }).phones).toBe(
+        "직접 입력은 1,000개까지예요",
+      );
     });
   });
 
