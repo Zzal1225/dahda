@@ -29,6 +29,7 @@
 | 화면 상태 | Zustand (역할 전환·선택 행 등 화면 상태만. 서버 데이터 금지) |
 | URL 상태 | nuqs (표 필터·정렬·페이지) |
 | 표 | TanStack Table + TanStack Virtual |
+| 차트 | Recharts (첫 화면 발송 추이. 2026-11-13 사용자 승인. 색은 상태 토큰만) |
 | 폼·검증 | React Hook Form + Zod |
 | 엑셀 | SheetJS(xlsx) + Web Worker (직접 작성, 라이브러리 없음) |
 | 스타일·컴포넌트 | Tailwind + shadcn/ui + lucide-react. 디자인 토큰 원본은 핸드오프 `0 디자인 시스템.dc.html` (`tokens.test.ts`가 일치 검사) |

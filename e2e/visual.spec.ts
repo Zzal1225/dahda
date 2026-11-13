@@ -35,6 +35,12 @@ const SCREENS: {
       page.getByRole("heading", { level: 1 }),
       page.getByRole("region", { name: "진행 중인 발송" }).getByRole("list"),
       bodyRows(page),
+      // 체험 인원이 무작위라 추이의 합계와 막대 높이가 매번 다르다. 칸 크기는 같아 가리기로 충분하다.
+      page.getByRole("region", { name: "발송 추이" }).locator("dd"),
+      page.getByRole("region", { name: "발송 추이" }).getByRole("img"),
+      page
+        .getByRole("region", { name: "발송 추이" })
+        .getByText(/^확인 중 [0-9,]+건은/),
     ],
   },
   {

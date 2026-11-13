@@ -149,3 +149,33 @@ export function nextKstHour(now: Date, hour: number): Date {
   const today = kstDayStart + hour * 60 * 60 * 1000;
   return new Date(today > now.getTime() ? today : today + DAY_MS);
 }
+
+export type KstBucketUnit = "day" | "month";
+
+/**
+ * 추이 차트의 칸. 오늘(이번 달)을 포함해 count칸이고, 키는 KST 날짜 YYYY-MM-DD(월은 1일)다.
+ * DB 함수 campaign_trend가 같은 형식(date)으로 돌려주므로 키로 바로 맞춘다.
+ * start는 첫 칸 KST 0시의 UTC 시각이다. 서버 시간대와 관계없이 같은 칸이 나와야 해서 UTC 계산만 쓴다.
+ */
+export function kstBuckets(
+  unit: KstBucketUnit,
+  count: number,
+  now: Date,
+): { start: string; keys: string[] } {
+  const [year, month, day] = parts(now).day.split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  const at = (offset: number) =>
+    unit === "day"
+      ? Date.UTC(year, month - 1, day - offset)
+      : Date.UTC(year, month - 1 - offset, 1);
+  const keys = Array.from({ length: count }, (_, index) =>
+    new Date(at(count - 1 - index)).toISOString().slice(0, 10),
+  );
+  return {
+    start: new Date(at(count - 1) - KST_OFFSET_MS).toISOString(),
+    keys,
+  };
+}

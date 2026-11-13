@@ -422,6 +422,11 @@ isOneToOne: false
               "accepted_late": number,"awaiting": number,"carrier_failed": number,"completed_at": string,"delivered": number,"first_accepted_at": string,"first_delivered_at": string,"first_result_at": string,"queued": number,"started_at": string,"vendor_failed": number,"webhook_count": number,"webhook_ignored": number
             }[]
                            },
+"campaign_trend":
+{ Args: { "p_from": string,"p_unit": string }; Returns: {
+              "bucket": string,"campaign_count": number,"delivered": number,"failed": number,"pending": number,"recipient_count": number
+            }[]
+                           },
 "cancel_campaign":
 { Args: { "p_branch_id": string,"p_campaign_id": string,"p_org_id": string }; Returns: undefined
                            },
