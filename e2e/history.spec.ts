@@ -325,10 +325,40 @@ test.describe("발송 내역", () => {
     await expect(lines).toContainText("순서 바뀜");
   });
 
+  test("문자 종류로 거르면 주소와 칩에 남고 두 종류를 합치면 전체와 같다", async ({
+    page,
+  }) => {
+    await openHistoryAsTrial(page);
+    const kind = page.getByRole("combobox", { name: "문자 종류" });
+    const rows = campaignTable(page).getByRole("row");
+    // 머리글 1행 + 체험 샘플 10건. 그중 본사의 LMS가 2건이다.
+    await expect(rows).toHaveCount(11);
+
+    await kind.selectOption("lms");
+    await expect(page).toHaveURL(/kind=lms/);
+    await expect(rows).toHaveCount(3);
+    for (const row of await rows.all()) {
+      await expect(row).not.toContainText("SMS");
+    }
+    await expect(
+      page.getByRole("button", { name: "LMS 필터 지우기" }),
+    ).toBeVisible();
+
+    await kind.selectOption("sms");
+    await expect(page).toHaveURL(/kind=sms/);
+    await expect(rows).toHaveCount(9);
+
+    await page.getByRole("button", { name: "SMS 필터 지우기" }).click();
+    await expect(page).not.toHaveURL(/kind=/);
+    await expect(rows).toHaveCount(11);
+  });
+
   test("잘못된 URL 값이 있어도 화면이 깨지지 않는다", async ({ page }) => {
     await openHistoryAsTrial(page);
 
-    await page.goto("/history?period=1y&ad=x&page=-1&size=999&sort=hack.up");
+    await page.goto(
+      "/history?period=1y&ad=x&kind=mms&page=-1&size=999&sort=hack.up",
+    );
 
     await expect(campaignTable(page).getByRole("row")).toHaveCount(11);
     await expect(page.getByRole("radio", { name: "7일" })).toBeChecked();

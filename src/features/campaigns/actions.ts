@@ -11,6 +11,7 @@ import { createSupabaseServerClient } from "@/server/supabase/server";
 import {
   adPrefix,
   adSuffix,
+  campaignInputSchema,
   campaignSchema,
   deriveMessage,
 } from "./campaignSchema";
@@ -21,6 +22,7 @@ import { submitEventType, transitionCampaign } from "./status";
 const selectionSchema = z.object({
   groupIds: z.array(z.uuid()).max(200),
   contactIds: z.array(z.uuid()).max(5_000),
+  phones: campaignInputSchema.shape.phones.default([]),
 });
 
 export type RecipientSummary = {
@@ -47,6 +49,7 @@ export async function previewRecipients(
       parsed.data.groupIds,
       parsed.data.contactIds,
       { isAd: parsed.data.isAd },
+      parsed.data.phones,
     );
   return { total: recipients.length, optedOut, duplicates, noConsent };
 }
@@ -153,6 +156,7 @@ export async function submitCampaign(
     values.groupIds,
     values.contactIds,
     { isAd: values.isAd },
+    values.phones,
   );
   if (recipients.length === 0) {
     return { error: "보낼 수 있는 받는 사람이 없어요" };

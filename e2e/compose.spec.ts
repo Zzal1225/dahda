@@ -255,6 +255,60 @@ test.describe("문자 작성", () => {
     ).toContainText("총 1명");
   });
 
+  test("직접 입력한 번호는 정규화되고 수신거부·미동의 규칙을 그대로 따른다", async ({
+    page,
+  }) => {
+    await startTrial(page);
+    await switchToBranch(page, "합정점");
+    const optedOut = await contactPhone(page, "opted_out");
+    const consented = await contactPhone(page, "consented");
+    // 01000 대역은 체험 주소록에 없는 시험 번호다. 주소록 밖 번호가 광고에서 빠지는지 본다.
+    const stranger = "010-0000-9901";
+    await page.goto("/compose");
+
+    await page.getByRole("radio", { name: "직접 입력" }).click();
+    const input = page.getByRole("textbox", { name: "번호 직접 입력" });
+    await input.fill(
+      `${consented}\n${optedOut}, ${stranger.replace(/-/g, "")}\n잘못된번호\n${consented}`,
+    );
+    await page.getByRole("button", { name: "번호 추가" }).click();
+
+    await expect(
+      page.getByText(
+        "3개 추가 · 중복 1개 제외 · 형식이 틀린 1개는 입력창에 남겼어요",
+      ),
+    ).toBeVisible();
+    await expect(input).toHaveValue("잘못된번호");
+    const added = page.getByRole("list", { name: "직접 넣은 번호" });
+    await expect(added.getByRole("listitem")).toHaveCount(3);
+    await expect(added).toContainText(stranger);
+
+    const summary = page.getByRole("status").filter({ hasText: "총" });
+    await expect(summary).toContainText("총 2명 · 수신거부 1명 제외");
+    await page.getByRole("switch", { name: "광고 문자예요" }).check();
+    await expect(summary).toContainText(
+      "총 1명 · 수신거부 1명 제외 · 미동의 1명 제외",
+    );
+    await page.getByRole("switch", { name: "광고 문자예요" }).uncheck();
+
+    await added.getByRole("button", { name: `${stranger} 빼기` }).click();
+    await expect(added.getByRole("listitem")).toHaveCount(2);
+    await expect(summary).toContainText("총 1명 · 수신거부 1명 제외");
+
+    await body(page).fill("직접 입력 안내");
+    await page.getByRole("button", { name: "보내기", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "보내기 확인" })
+      .getByRole("button", { name: "1건 보내기" })
+      .click();
+    await expect(page).toHaveURL(/\/history\?campaign=/);
+    await expect(
+      page
+        .getByRole("table", { name: "발송 건" })
+        .getByRole("row", { selected: true }),
+    ).toContainText("직접 입력 안내");
+  });
+
   test("받는 사람과 내용이 없으면 보낼 수 없다", async ({ page }) => {
     await startTrial(page);
     await switchToBranch(page, "성수점");

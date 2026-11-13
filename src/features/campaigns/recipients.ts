@@ -35,12 +35,16 @@ async function readAll<T>(
   }
 }
 
-/** 그룹·직접 선택을 실제 수신자로 바꾼다. 사용자 권한 클라이언트를 받아, 범위 밖의 id는 RLS가 빈 결과로 만든다. */
+/**
+ * 그룹·주소록 선택·직접 입력을 실제 수신자로 바꾼다. 사용자 권한 클라이언트를 받아, 범위 밖의 id는 RLS가 빈 결과로 만든다.
+ * phones는 정규화된 번호다(campaignSchema가 확인). 직접 입력도 여기서 함께 걸러야 수신거부·동의 규칙이 한 곳에 남는다.
+ */
 export async function resolveRecipients(
   supabase: Client,
   groupIds: readonly string[],
   contactIds: readonly string[],
   options: { isAd: boolean },
+  phones: readonly string[] = [],
 ): Promise<ResolvedRecipients> {
   const picked: PickedContact[] = [];
 
@@ -66,6 +70,23 @@ export async function resolveRecipients(
       .in("id", contactIds.slice(start, start + IN_CHUNK));
     if (error) throw new Error(`수신자 조회 실패: ${error.message}`);
     picked.push(...data);
+  }
+
+  // 직접 입력한 번호가 볼 수 있는 주소록에 있으면 그 행(이름·동의)을 쓴다.
+  // 주소록에 없는 번호는 동의 기록이 없으므로 광고에서 빠진다. 붙여 넣은 번호의 동의를 화면 말로 믿을 수 없다.
+  for (let start = 0; start < phones.length; start += IN_CHUNK) {
+    const chunk = phones.slice(start, start + IN_CHUNK);
+    const { data, error } = await supabase
+      .from("contacts")
+      .select("phone, name, consent_at")
+      .in("phone", chunk);
+    if (error) throw new Error(`수신자 조회 실패: ${error.message}`);
+    const known = new Set(data.map((row) => row.phone));
+    picked.push(...data);
+    for (const phone of chunk) {
+      if (!known.has(phone))
+        picked.push({ phone, name: null, consent_at: null });
+    }
   }
 
   const optOuts = await readAll((from, to) =>

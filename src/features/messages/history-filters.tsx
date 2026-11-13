@@ -15,6 +15,7 @@ import {
   CAMPAIGN_STATE_FILTERS,
   type AdFilter,
   type CampaignStateFilter,
+  type KindFilter,
   type Period,
   type TableState,
 } from "./table-state";
@@ -29,6 +30,13 @@ const AD_OPTIONS: { value: AdFilter; label: string }[] = [
   { value: "all", label: "전체" },
   { value: "ad", label: "광고" },
   { value: "non_ad", label: "비광고" },
+];
+
+// 선택 상자로 둔다. 세 칸짜리 버튼 묶음이면 1280px 본사 화면(지점 칸이 있다)에서 툴바가 두 줄로 넘친다.
+const KIND_OPTIONS: { value: KindFilter; label: string }[] = [
+  { value: "all", label: "모든 종류" },
+  { value: "sms", label: "SMS" },
+  { value: "lms", label: "LMS" },
 ];
 
 // 라벨은 상태 배지와 같게 둔다. 필터와 표가 다른 말을 쓰면 같은 건인지 헷갈린다.
@@ -80,6 +88,13 @@ function appliedChips(
       key: "ad",
       label: filters.ad === "ad" ? "광고" : "비광고",
       clear: () => setFilters({ ad: "all" }),
+    });
+  }
+  if (filters.kind !== "all") {
+    chips.push({
+      key: "kind",
+      label: filters.kind.toUpperCase(),
+      clear: () => setFilters({ kind: "all" }),
     });
   }
   if (filters.state) {
@@ -215,6 +230,25 @@ export function HistoryFilters({
           onChange={(ad) => setFilters({ ad })}
         />
         <select
+          aria-label="문자 종류"
+          value={filters.kind}
+          onChange={(event) =>
+            setFilters({
+              kind:
+                KIND_OPTIONS.find(
+                  (option) => option.value === event.target.value,
+                )?.value ?? "all",
+            })
+          }
+          className="h-(--control-h) cursor-pointer rounded-md border border-border-strong bg-surface px-2 text-body-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          {KIND_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <select
           aria-label="발송 건 상태"
           value={filters.state ?? ""}
           onChange={(event) =>
@@ -234,13 +268,15 @@ export function HistoryFilters({
             </option>
           ))}
         </select>
-        <div className="ml-auto flex items-center gap-2">
+        {/* 줄바꿈은 basis(검색 최소 140px + 버튼)로 정하고, 남는 자리에서 검색창이 200px까지 늘어난다.
+            고정 폭이면 몇 px 모자랄 때 검색과 버튼만 다음 줄로 떨어진다. */}
+        <div className="ml-auto flex grow basis-[184px] items-center justify-end gap-2">
           <Input
             type="search"
             inputMode="numeric"
             aria-label="수신번호 검색"
             placeholder="수신번호 검색"
-            className="w-[200px]"
+            className="w-full max-w-[200px] min-w-0"
             value={search}
             // 번호를 하이픈과 함께 붙여 넣어도 찾을 수 있게 숫자만 남긴다.
             onChange={(event) =>

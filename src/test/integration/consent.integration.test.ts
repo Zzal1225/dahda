@@ -234,3 +234,64 @@ describe("오늘 숫자 합계", () => {
     expect(error?.code).toBe("42501");
   });
 });
+
+// 직접 입력한 번호는 주소록 밖일 수 있다. 같은 규칙(수신거부·동의·중복)을 resolveRecipients 하나에서 거친다.
+describe("직접 입력한 번호", () => {
+  const resolve = async (
+    user: Parameters<Fixture["tokenOf"]>[0],
+    phones: string[],
+    isAd: boolean,
+    contactIds: string[] = [],
+  ) => resolveRecipients(await asUser(user), [], contactIds, { isAd }, phones);
+
+  it("주소록에 없는 번호는 일반 문자에는 들어가고 광고에서는 미동의로 빠진다", async () => {
+    const phone = uniquePhone();
+    const plain = await resolve("branch1", [phone], false);
+    const ad = await resolve("branch1", [phone], true);
+
+    expect(plain.recipients).toEqual([{ phone, name: null }]);
+    expect(ad.recipients).toEqual([]);
+    expect(ad.noConsent).toBe(1);
+  });
+
+  it("동의한 연락처의 번호면 광고에도 들어가고 이름을 쓴다", async () => {
+    const row = await contact(f.branch1, true);
+    must(
+      await service
+        .from("contacts")
+        .update({ name: "직접입력손님" })
+        .eq("id", row.id)
+        .select("id"),
+    );
+    const result = await resolve("branch1", [row.phone], true);
+    expect(result.recipients).toEqual([
+      { phone: row.phone, name: "직접입력손님" },
+    ]);
+  });
+
+  it("다른 지점 연락처의 동의는 보이지 않아 쓰지 못한다", async () => {
+    const other = await contact(f.branch2, true);
+    const result = await resolve("branch1", [other.phone], true);
+    expect(result.recipients).toEqual([]);
+    expect(result.noConsent).toBe(1);
+  });
+
+  it("수신거부 번호는 주소록에 없어도 빠진다", async () => {
+    const phone = uniquePhone();
+    must(
+      await service
+        .from("opt_outs")
+        .insert({ org_id: f.orgA, phone, source: "manual" })
+        .select("id"),
+    );
+    const result = await resolve("branch1", [phone], false);
+    expect(result).toMatchObject({ optedOut: 1, recipients: [] });
+  });
+
+  it("주소록에서 고른 사람과 같은 번호를 직접 넣어도 한 번만 보낸다", async () => {
+    const row = await contact(f.branch1, true);
+    const result = await resolve("branch1", [row.phone], false, [row.id]);
+    expect(result.recipients).toHaveLength(1);
+    expect(result.duplicates).toBe(1);
+  });
+});

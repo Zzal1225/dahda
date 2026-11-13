@@ -18,6 +18,7 @@ export const campaignQuerySchema = z.object({
     .nullable()
     .default(null),
   ad: z.enum(["all", "ad", "non_ad"]).default("all"),
+  kind: z.enum(["all", "sms", "lms"]).default("all"),
   state: z.enum(CAMPAIGN_STATE_FILTERS).nullable().default(null),
 });
 export type CampaignQuery = z.infer<typeof campaignQuerySchema>;
@@ -92,6 +93,7 @@ export async function listCampaigns(
     request = request.eq("branch_id", query.branch);
   }
   if (query.ad !== "all") request = request.eq("is_ad", query.ad === "ad");
+  if (query.kind !== "all") request = request.eq("kind", query.kind);
   // 실패는 발송 중에도 생긴다. 끝난 건만 보면 지금 실패가 쌓이는 건을 놓친다.
   if (query.state === "has_failed") {
     request = request.gt("failed_count", 0);

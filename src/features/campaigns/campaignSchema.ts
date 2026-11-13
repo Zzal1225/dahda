@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { kstDayTimeToUtc } from "@/lib/kst";
+import { normalizePhone } from "@/lib/phone";
+import { MAX_DIRECT_PHONES } from "./direct-phones";
 import { isNightKst } from "./ad-hours";
 
 export { isNightKst };
@@ -64,6 +66,20 @@ export const campaignInputSchema = z.object({
   clientRequestId: z.uuid(),
   groupIds: z.array(z.uuid()),
   contactIds: z.array(z.uuid()),
+  /** 직접 입력한 번호. 정규화된 값만 받는다(바꾸지 않고 확인만 한다). */
+  phones: z
+    .array(
+      z
+        .string()
+        .refine(
+          (value) => normalizePhone(value) === value,
+          "형식이 틀린 번호가 있어요",
+        ),
+    )
+    .max(
+      MAX_DIRECT_PHONES,
+      `직접 입력은 ${MAX_DIRECT_PHONES.toLocaleString("ko-KR")}개까지예요`,
+    ),
   isAd: z.boolean(),
   body: z.string(),
   senderId: z.string(),
@@ -81,7 +97,11 @@ export function campaignSchema(context: CampaignContext) {
     const add = (path: keyof CampaignInput, message: string) =>
       issue.addIssue({ code: "custom", path: [path], message });
 
-    if (input.groupIds.length === 0 && input.contactIds.length === 0) {
+    if (
+      input.groupIds.length === 0 &&
+      input.contactIds.length === 0 &&
+      input.phones.length === 0
+    ) {
       add("groupIds", "받는 사람을 1명 이상 선택해 주세요");
     }
 
